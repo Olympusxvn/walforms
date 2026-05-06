@@ -3,8 +3,6 @@
 
 import { SuiClient, getFullnodeUrl } from 'https://esm.sh/@mysten/sui/client';
 import { Transaction } from 'https://esm.sh/@mysten/sui/transactions';
-import { getWallets } from 'https://esm.sh/@mysten/wallet-standard';
-
 // ---------------------------------------------------------------------------
 // Config — set after contract deploy
 // ---------------------------------------------------------------------------
@@ -16,35 +14,57 @@ const SUI_RPC = getFullnodeUrl('mainnet');
 export const suiClient = new SuiClient({ url: SUI_RPC });
 
 // ---------------------------------------------------------------------------
-// Wallet Standard — connect / disconnect
+// Wallet Standard — event-based discovery (works without CDN import)
 // ---------------------------------------------------------------------------
 
-let _wallet = null; // active wallet object from wallet-standard
+const _wallets = [];
+
+function isSuiWallet(w) {
+  return w?.features && (
+    'sui:signAndExecuteTransaction' in w.features ||
+    'sui:signAndExecuteTransactionBlock' in w.features
+  );
+}
+
+// Step 1: listen for wallets that register after this module loads
+window.addEventListener('wallet-standard:register-wallet', ({ detail: { register } }) => {
+  try {
+    const w = register();
+    if (w && isSuiWallet(w) && !_wallets.find(x => x.name === w.name)) _wallets.push(w);
+  } catch { /* ignore malformed wallets */ }
+});
+
+// Step 2: ask already-loaded wallets to announce themselves
+window.dispatchEvent(new CustomEvent('wallet-standard:app-ready', {
+  bubbles: true,
+  cancelable: false,
+  detail: {
+    register(w) {
+      if (w && isSuiWallet(w) && !_wallets.find(x => x.name === w.name)) _wallets.push(w);
+    },
+  },
+}));
+
+let _wallet = null;
 
 export function getConnectedWallet() { return _wallet; }
 export function getConnectedAddress() { return _wallet?.accounts?.[0]?.address ?? null; }
 export function isWalletConnected() { return Boolean(_wallet && getConnectedAddress()); }
 
-/** Returns array of installed Sui wallets via wallet-standard. */
-export function getInstalledWallets() {
-  try {
-    // @mysten/wallet-standard getWallets() is the canonical API
-    const { get } = getWallets();
-    return get().filter(w =>
-      w.features &&
-      ('sui:signAndExecuteTransaction' in w.features || 'sui:signAndExecuteTransactionBlock' in w.features)
-    );
-  } catch {
-    return [];
-  }
-}
+/** Returns currently discovered Sui wallets. Call after DOMContentLoaded for best results. */
+export function getInstalledWallets() { return [..._wallets]; }
 
 /**
  * Connect to the first available Sui wallet.
  * Returns { address, walletName } or throws.
  */
 export async function connectWallet(preferredWallet = null) {
-  const wallets = getInstalledWallets();
+  // Give wallets up to 300 ms to announce themselves (handles slow extension injection)
+  let wallets = getInstalledWallets();
+  if (wallets.length === 0) {
+    await new Promise(r => setTimeout(r, 300));
+    wallets = getInstalledWallets();
+  }
   if (wallets.length === 0) {
     throw new Error('No Sui wallet installed. Please install Slush or another Wallet Standard wallet.');
   }
