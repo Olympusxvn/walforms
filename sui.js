@@ -1,13 +1,13 @@
 // sui.js — Sui mainnet client: wallet connect, TX builders, object queries.
 // Uses @mysten/sui SDK + @mysten/wallet-standard via esm.sh CDN. No bundler required.
 
-import { SuiClient, getFullnodeUrl } from 'https://esm.sh/@mysten/sui/client';
-import { Transaction } from 'https://esm.sh/@mysten/sui/transactions';
+import { SuiClient, getFullnodeUrl } from 'https://esm.sh/@mysten/sui@1.21.2/client';
+import { Transaction } from 'https://esm.sh/@mysten/sui@1.21.2/transactions';
 
 // ---------------------------------------------------------------------------
 // Wallet Standard API — using official @mysten/wallet-standard helper
 // ---------------------------------------------------------------------------
-import { getWallets } from 'https://esm.sh/@mysten/wallet-standard';
+import { getWallets } from 'https://esm.sh/@mysten/wallet-standard@0.2.0';
 
 const walletsApi = getWallets();
 let _wallets = [];
@@ -404,7 +404,7 @@ let _ephemeralKeypair = null;
 
 export async function getEphemeralKeypair() {
   if (_ephemeralKeypair) return _ephemeralKeypair;
-  const { Ed25519Keypair } = await import('https://esm.sh/@mysten/sui/keypairs/ed25519');
+  const { Ed25519Keypair } = await import('https://esm.sh/@mysten/sui@1.21.2/keypairs/ed25519');
   _ephemeralKeypair = new Ed25519Keypair();
   return _ephemeralKeypair;
 }
