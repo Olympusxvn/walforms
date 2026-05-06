@@ -8,7 +8,7 @@ WalForms is a Walrus-native feedback and form platform where form definitions an
 
 ## Live demo
 
-**URL:** https://chipper-gelato-26b03e.netlify.app
+**URL:** https://cool-torrone-2530ff.netlify.app
 
 ## Why this is different
 
