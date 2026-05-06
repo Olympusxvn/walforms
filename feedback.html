@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WalForms Feedback</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="description" content="Feedback form for Walrus Sessions Round 2.">
+</head>
+<body>
+  <main class="section text-center">
+    <div class="container">
+      <div class="card" style="padding: var(--sp-8); max-width: 620px; margin-inline: auto;">
+        <h1>Feedback form</h1>
+        <p class="text-muted" style="margin-top: var(--sp-4);">
+          You are being redirected to the WalForms feedback form.
+          If the redirect does not happen automatically, use the link below.
+        </p>
+        <a id="feedback-link" href="form.html?id=REPLACE_WITH_FEEDBACK_FORM_ID" class="btn btn-primary" style="margin-top: var(--sp-6);">Open feedback form</a>
+        <p class="text-small text-muted" style="margin-top: var(--sp-4);">
+          Replace the placeholder form ID above with the published feedback form object ID when available.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const link = document.getElementById('feedback-link');
+      if (link && link.href.includes('REPLACE_WITH_FEEDBACK_FORM_ID')) return;
+      window.setTimeout(() => {
+        if (link && link.href) {
+          window.location.href = link.href;
+        }
+      }, 800);
+    });
+  </script>
+</body>
+</html>
