@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify a form — WalForms</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="description" content="Independently audit any WalForms form. Verify every submission hash and Merkle root — no wallet needed.">
+  <style>
+    /* Verify page */
+    .verify-wrap { max-width: 760px; margin: 0 auto; }
+
+    /* Input card */
+    .verify-input-row {
+      display: flex; gap: var(--sp-3); align-items: stretch;
+    }
+    .verify-input-row .field-input { flex: 1; font-family: var(--font-mono); font-size: var(--text-sm); }
+    @media (max-width: 600px) { .verify-input-row { flex-direction: column; } }
+
+    /* Step log */
+    .step-log { display: grid; gap: var(--sp-2); margin: var(--sp-6) 0; }
+    .step-log-item {
+      display: flex; align-items: flex-start; gap: var(--sp-3);
+      font-size: var(--text-sm); padding: var(--sp-2) 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .step-log-item:last-child { border-bottom: none; }
+    .step-log-icon { flex-shrink: 0; width: 18px; text-align: center; font-size: 14px; }
+    .step-log-text { flex: 1; }
+    .step-log-mono { font-family: var(--font-mono); font-size: 11px; color: var(--color-muted); word-break: break-all; }
+
+    /* Result banner */
+    .result-banner {
+      border-radius: var(--radius-lg);
+      padding: var(--sp-8);
+      text-align: center;
+      margin-bottom: var(--sp-8);
+    }
+    .result-banner.verified {
+      background: rgba(14,208,200,.06);
+      border: 2px solid var(--color-cyan);
+    }
+    .result-banner.tampered {
+      background: rgba(224,72,72,.05);
+      border: 2px solid var(--color-red);
+    }
+    .result-banner h2 { margin-bottom: var(--sp-2); }
+    .result-banner.tampered h2 { color: var(--color-red); }
+    .result-banner.verified h2 { color: var(--color-cyan); }
+
+    /* Walrus mascot */
+    .walrus-mascot {
+      width: 80px; height: 80px; margin: 0 auto var(--sp-4);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .walrus-mascot svg { width: 80px; height: 80px; }
+    @keyframes walrus-wave {
+      0%,100% { transform: rotate(-8deg); }
+      50%      { transform: rotate(8deg); }
+    }
+    .walrus-arm { transform-origin: 30px 48px; }
+    .verified .walrus-arm { animation: walrus-wave .8s ease-in-out 3; }
+
+    /* Pulse badge */
+    @keyframes pulse-ring {
+      0%   { box-shadow: 0 0 0 0 rgba(14,208,200,.4); }
+      100% { box-shadow: 0 0 0 10px rgba(14,208,200,0); }
+    }
+    .badge-verified-pulse {
+      display: inline-flex; align-items: center; gap: var(--sp-2);
+      background: rgba(14,208,200,.12); color: var(--color-cyan);
+      border: 1.5px solid var(--color-cyan);
+      border-radius: 99px; padding: var(--sp-2) var(--sp-4);
+      font-size: var(--text-sm); font-weight: 600;
+      animation: pulse-ring 1.5s ease-out 2;
+    }
+    .badge-tampered {
+      display: inline-flex; align-items: center; gap: var(--sp-2);
+      background: rgba(224,72,72,.12); color: var(--color-red);
+      border: 1.5px solid var(--color-red);
+      border-radius: 99px; padding: var(--sp-2) var(--sp-4);
+      font-size: var(--text-sm); font-weight: 600;
+    }
+
+    /* Submissions table */
+    .sub-list { display: grid; gap: var(--sp-3); }
+    .sub-row {
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: var(--sp-3); align-items: start;
+      padding: var(--sp-4) var(--sp-5);
+      border-radius: var(--radius-md);
+      border: 1.5px solid var(--color-border);
+      background: #fff;
+      font-size: var(--text-sm);
+    }
+    .sub-row.ok   { border-left: 4px solid var(--color-cyan); }
+    .sub-row.bad  { border-left: 4px solid var(--color-red); background: rgba(224,72,72,.03); }
+    .sub-seq { font-weight: 700; color: var(--color-muted); font-size: 12px; }
+    .sub-meta { display: grid; gap: 2px; }
+    .sub-status { font-weight: 600; }
+    .sub-status.ok  { color: var(--color-cyan); }
+    .sub-status.bad { color: var(--color-red); }
+
+    /* Merkle section */
+    .merkle-section {
+      margin-top: var(--sp-6);
+      padding: var(--sp-5);
+      border-radius: var(--radius-md);
+      border: 1.5px solid var(--color-border);
+      background: var(--color-surface);
+    }
+    .merkle-section h3 { margin-bottom: var(--sp-4); font-size: var(--text-base); }
+    .merkle-row { display: grid; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+    .merkle-row dt { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--color-muted); }
+    .merkle-row dd { font-family: var(--font-mono); font-size: var(--text-sm); word-break: break-all; margin: 0; }
+    .merkle-match   { color: var(--color-cyan); font-weight: 600; }
+    .merkle-mismatch{ color: var(--color-red);  font-weight: 600; }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo">WalForms</a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="builder.html" class="nav-link">Build</a>
+        <button id="wallet-connect-btn" class="btn btn-ghost" type="button">Connect wallet</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="section">
+    <div class="container">
+      <div class="verify-wrap">
+
+        <!-- Header -->
+        <div style="margin-bottom:var(--sp-8);">
+          <p class="eyebrow">Public Auditor</p>
+          <h1>Verify any form</h1>
+          <p style="color:var(--color-muted);max-width:520px;">
+            Paste a form's Sui object ID. WalForms will fetch every submission,
+            re-verify each hash, and recompute the Merkle root locally —
+            then compare it to what's on-chain. No wallet needed.
+          </p>
+        </div>
+
+        <!-- Input -->
+        <div class="card" style="margin-bottom:var(--sp-8);">
+          <label class="field-label" for="verify-input">Form Sui object ID</label>
+          <div class="verify-input-row" style="margin-top:var(--sp-3);">
+            <input
+              id="verify-input"
+              class="field-input"
+              type="text"
+              placeholder="0x…"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="verify-btn" class="btn btn-primary" type="button">Verify</button>
+          </div>
+          <p style="font-size:12px;color:var(--color-muted);margin-top:var(--sp-3);">
+            The form ID is the Sui object ID created when the form was saved in the builder
+            (also visible in the shareable <code>form.html?id=…</code> URL).
+          </p>
+        </div>
+
+        <!-- Results area -->
+        <div id="verify-output" aria-live="polite"></div>
+
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="app.js"></script>
+  <script type="module" src="verify.js"></script>
+</body>
+</html>
