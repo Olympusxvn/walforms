@@ -3,6 +3,7 @@
 
 import { SuiClient, getFullnodeUrl } from 'https://esm.sh/@mysten/sui/client';
 import { Transaction } from 'https://esm.sh/@mysten/sui/transactions';
+import { getWallets } from 'https://esm.sh/@mysten/wallet-standard';
 
 // ---------------------------------------------------------------------------
 // Config — set after contract deploy
@@ -26,31 +27,34 @@ export function isWalletConnected() { return Boolean(_wallet && getConnectedAddr
 
 /** Returns array of installed Sui wallets via wallet-standard. */
 export function getInstalledWallets() {
-  const wallets = window.navigator?.wallets ?? window.wallets;
-  if (!wallets) return [];
-  // wallet-standard: wallets.get() returns registered wallets
-  if (typeof wallets.get === 'function') {
-    return wallets.get().filter(w =>
-      w.features && 'sui:signAndExecuteTransaction' in w.features
+  try {
+    // @mysten/wallet-standard getWallets() is the canonical API
+    const { get } = getWallets();
+    return get().filter(w =>
+      w.features &&
+      ('sui:signAndExecuteTransaction' in w.features || 'sui:signAndExecuteTransactionBlock' in w.features)
     );
+  } catch {
+    return [];
   }
-  return [];
 }
 
 /**
  * Connect to the first available Sui wallet.
  * Returns { address, walletName } or throws.
  */
-export async function connectWallet() {
+export async function connectWallet(preferredWallet = null) {
   const wallets = getInstalledWallets();
   if (wallets.length === 0) {
     throw new Error('No Sui wallet installed. Please install Slush or another Wallet Standard wallet.');
   }
-  const wallet = wallets[0];
+  const wallet = preferredWallet ?? wallets[0];
   const connectFeature = wallet.features['standard:connect'];
   if (!connectFeature) throw new Error('Wallet does not support standard:connect.');
-  await connectFeature.connect();
+  const result = await connectFeature.connect();
   _wallet = wallet;
+  // Some wallets return accounts from connect(), others register them on the wallet object
+  if (result?.accounts?.length) _wallet = { ..._wallet, accounts: result.accounts };
   const address = getConnectedAddress();
   if (!address) throw new Error('Wallet connected but returned no accounts.');
   return { address, walletName: wallet.name };
@@ -66,8 +70,10 @@ export async function disconnectWallet() {
 /** Sign and execute a Transaction using the connected wallet. Returns SuiTransactionBlockResponse. */
 export async function signAndExecute(tx) {
   if (!_wallet) throw new Error('Wallet not connected.');
-  const feat = _wallet.features['sui:signAndExecuteTransaction'];
-  if (!feat) throw new Error('Wallet does not support sui:signAndExecuteTransaction.');
+  // Support both wallet-standard v1 (signAndExecuteTransactionBlock) and v2 (signAndExecuteTransaction)
+  const feat = _wallet.features['sui:signAndExecuteTransaction']
+             ?? _wallet.features['sui:signAndExecuteTransactionBlock'];
+  if (!feat) throw new Error('Wallet does not support signAndExecuteTransaction.');
   const address = getConnectedAddress();
   tx.setSender(address);
   const result = await feat.signAndExecuteTransaction({
