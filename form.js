@@ -6,6 +6,7 @@ import { renderFieldInput, readFieldValue } from './fields.js';
 import {
   getWalForm,
   txRecordSubmission,
+  buildRecordSubmissionTx,
   signAndExecuteAnonymous,
   isWalletConnected,
   getConnectedAddress,
@@ -297,9 +298,11 @@ async function handleSubmit(e) {
       if (isWalletConnected()) {
         txResult = await txRecordSubmission(walForm.id, subBlobId, hashBytes);
       } else {
-        txResult = await signAndExecuteAnonymous(
-          buildRecordTx(walForm.id, subBlobId, hashBytes)
-        );
+        // Anonymous on-chain TX: ephemeral key must have gas. Without a gas
+        // sponsor this will fail with InsufficientGas on mainnet. Users should
+        // connect a wallet when possible.
+        const tx = buildRecordSubmissionTx(walForm.id, subBlobId, hashBytes);
+        txResult = await signAndExecuteAnonymous(tx);
       }
     } catch (txErr) {
       statuses.sign = 'error';
@@ -326,14 +329,6 @@ async function handleSubmit(e) {
   }
 }
 
-function buildRecordTx(formObjectId, subBlobId, hashBytes) {
-  // Lazy import to avoid top-level await
-  const { Transaction } = window.__suiTx ?? {};
-  // Fall back: txRecordSubmission already builds internally, but for anon
-  // we pass raw bytes via signAndExecuteAnonymous which calls tx.build()
-  // This is handled inside sui.js signAndExecuteAnonymous.
-  return { formObjectId, subBlobId, hashBytes };
-}
 
 // ---------------------------------------------------------------------------
 // Curl fallback inline (upload step failed)

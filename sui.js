@@ -1,8 +1,100 @@
 // sui.js — Sui mainnet client: wallet connect, TX builders, object queries.
-// Uses @mysten/sui SDK via esm.sh CDN. No bundler required.
+// Uses @mysten/sui SDK + @mysten/wallet-standard via esm.sh CDN. No bundler required.
 
 import { SuiClient, getFullnodeUrl } from 'https://esm.sh/@mysten/sui/client';
 import { Transaction } from 'https://esm.sh/@mysten/sui/transactions';
+
+// ---------------------------------------------------------------------------
+// Wallet Standard API — using official @mysten/wallet-standard helper
+// ---------------------------------------------------------------------------
+import { getWallets } from 'https://esm.sh/@mysten/wallet-standard';
+
+const walletsApi = getWallets();
+let _wallets = [];
+let _wallet = null;
+
+function isSuiWallet(w) {
+  return w?.features && (
+    'sui:signAndExecuteTransaction' in w.features ||
+    'sui:signAndExecuteTransactionBlock' in w.features
+  );
+}
+
+function addWallet(w) {
+  if (w && isSuiWallet(w) && !_wallets.find(x => x.name === w.name)) {
+    _wallets.push(w);
+  }
+}
+
+// Fetch initial wallets
+_wallets = walletsApi.get().filter(isSuiWallet);
+
+// Listen for new wallets being registered dynamically
+walletsApi.on('register', () => {
+  const newWallets = walletsApi.get().filter(isSuiWallet);
+  newWallets.forEach(addWallet);
+  console.debug('Wallet registry updated:', _wallets.map(w => w.name));
+});
+
+// Fallback: retry detecting wallets every 500ms for up to 5 seconds.
+// This handles cases where the extension injects late.
+let retries = 0;
+const maxRetries = 10;
+const retryInterval = setInterval(() => {
+  const discovered = walletsApi.get().filter(isSuiWallet);
+  discovered.forEach(addWallet);
+
+  if (_wallets.length > 0) {
+    clearInterval(retryInterval);
+    console.debug('✅ Sui wallets detected:', _wallets.map(w => w.name));
+  } else if (++retries >= maxRetries) {
+    clearInterval(retryInterval);
+    console.warn('⚠️ No Sui wallets detected after 5 seconds.');
+  }
+}, 500);
+
+// Manual event listener fallback for wallet-standard spec
+function handleRegisterWalletEvent(event) {
+  const register = event?.detail?.register;
+  if (typeof register !== 'function') return;
+
+  try {
+    register((wallets) => {
+      if (Array.isArray(wallets)) {
+        wallets.forEach(addWallet);
+      } else if (wallets && typeof wallets === 'object') {
+        addWallet(wallets);
+      }
+      return wallets;
+    });
+  } catch (err) {
+    console.warn('Failed to register wallets via event:', err);
+  }
+}
+
+window.addEventListener('sui:register-wallet', handleRegisterWalletEvent);
+window.addEventListener('wallet-standard:register-wallet', handleRegisterWalletEvent);
+
+// Notify wallets that the app is ready
+function dispatchAppReady() {
+  const detail = { register: (fn) => {
+    const wallets = walletsApi.get().filter(isSuiWallet);
+    wallets.forEach(w => fn(w));
+  }};
+  window.dispatchEvent(new CustomEvent('sui:app-ready', {
+    bubbles: true,
+    cancelable: false,
+    detail,
+  }));
+  window.dispatchEvent(new CustomEvent('wallet-standard:app-ready', {
+    bubbles: true,
+    cancelable: false,
+    detail,
+  }));
+}
+
+dispatchAppReady();
+
 // ---------------------------------------------------------------------------
 // Config — set after contract deploy
 // ---------------------------------------------------------------------------
@@ -14,94 +106,116 @@ const SUI_RPC = getFullnodeUrl('mainnet');
 export const suiClient = new SuiClient({ url: SUI_RPC });
 
 // ---------------------------------------------------------------------------
-// Wallet Standard — event-based discovery (works without CDN import)
+// Wallet connection state
 // ---------------------------------------------------------------------------
-
-const _wallets = [];
-
-function isSuiWallet(w) {
-  return w?.features && (
-    'sui:signAndExecuteTransaction' in w.features ||
-    'sui:signAndExecuteTransactionBlock' in w.features
-  );
-}
-
-// Step 1: listen for wallets that register after this module loads
-window.addEventListener('wallet-standard:register-wallet', ({ detail: { register } }) => {
-  try {
-    const w = register();
-    if (w && isSuiWallet(w) && !_wallets.find(x => x.name === w.name)) _wallets.push(w);
-  } catch { /* ignore malformed wallets */ }
-});
-
-// Step 2: ask already-loaded wallets to announce themselves
-window.dispatchEvent(new CustomEvent('wallet-standard:app-ready', {
-  bubbles: true,
-  cancelable: false,
-  detail: {
-    register(w) {
-      if (w && isSuiWallet(w) && !_wallets.find(x => x.name === w.name)) _wallets.push(w);
-    },
-  },
-}));
-
-let _wallet = null;
 
 export function getConnectedWallet() { return _wallet; }
 export function getConnectedAddress() { return _wallet?.accounts?.[0]?.address ?? null; }
+export function getAccount() { return _wallet?.accounts?.[0] ?? null; }
 export function isWalletConnected() { return Boolean(_wallet && getConnectedAddress()); }
 
-/** Returns currently discovered Sui wallets. Call after DOMContentLoaded for best results. */
-export function getInstalledWallets() { return [..._wallets]; }
+/** Returns currently discovered Sui wallets. Refreshes from API. */
+export function getInstalledWallets() {
+  const fresh = walletsApi.get().filter(isSuiWallet);
+  fresh.forEach(addWallet);
+  return [..._wallets];
+}
 
 /**
- * Connect to the first available Sui wallet.
+ * Connect to a Sui wallet (prefer Slush if available, otherwise first available).
  * Returns { address, walletName } or throws.
  */
 export async function connectWallet(preferredWallet = null) {
-  // Give wallets up to 300 ms to announce themselves (handles slow extension injection)
+  // Refresh wallet list and wait a bit for slow injections
   let wallets = getInstalledWallets();
   if (wallets.length === 0) {
     await new Promise(r => setTimeout(r, 300));
     wallets = getInstalledWallets();
   }
+
   if (wallets.length === 0) {
-    throw new Error('No Sui wallet installed. Please install Slush or another Wallet Standard wallet.');
+    throw new Error(
+      'No Sui wallet installed. ' +
+      'Please install Slush (https://slush.app) or another Wallet Standard wallet.'
+    );
   }
-  const wallet = preferredWallet ?? wallets[0];
-  const connectFeature = wallet.features['standard:connect'];
-  if (!connectFeature) throw new Error('Wallet does not support standard:connect.');
+
+  // Prefer Slush if available, otherwise use preferred or first
+  let wallet = preferredWallet
+    || wallets.find(w => w.name?.toLowerCase() === 'slush')
+    || wallets[0];
+
+  const connectFeature = wallet.features['standard:connect'] ?? wallet.features['sui:connect'];
+  if (!connectFeature || typeof connectFeature.connect !== 'function') {
+    throw new Error(`Wallet "${wallet.name}" does not support standard:connect.`);
+  }
+
   const result = await connectFeature.connect();
   _wallet = wallet;
-  // Some wallets return accounts from connect(), others register them on the wallet object
-  if (result?.accounts?.length) _wallet = { ..._wallet, accounts: result.accounts };
+
+  // Some wallets return accounts from connect(), others store on wallet object
+  if (result?.accounts?.length) {
+    _wallet = { ..._wallet, accounts: result.accounts };
+  }
+
   const address = getConnectedAddress();
-  if (!address) throw new Error('Wallet connected but returned no accounts.');
+  if (!address) {
+    throw new Error('Wallet connected but returned no accounts.');
+  }
+
   return { address, walletName: wallet.name };
 }
 
 export async function disconnectWallet() {
   if (!_wallet) return;
-  const feat = _wallet.features['standard:disconnect'];
-  if (feat) await feat.disconnect();
+  const feat = _wallet.features['standard:disconnect'] ?? _wallet.features['sui:disconnect'];
+  if (feat && typeof feat.disconnect === 'function') {
+    try {
+      await feat.disconnect();
+    } catch (err) {
+      console.warn('Disconnect error (non-fatal):', err);
+    }
+  }
   _wallet = null;
 }
 
 /** Sign and execute a Transaction using the connected wallet. Returns SuiTransactionBlockResponse. */
 export async function signAndExecute(tx) {
   if (!_wallet) throw new Error('Wallet not connected.');
-  // Support both wallet-standard v1 (signAndExecuteTransactionBlock) and v2 (signAndExecuteTransaction)
-  const feat = _wallet.features['sui:signAndExecuteTransaction']
-             ?? _wallet.features['sui:signAndExecuteTransactionBlock'];
-  if (!feat) throw new Error('Wallet does not support signAndExecuteTransaction.');
+
+  const featureV2 = _wallet.features['sui:signAndExecuteTransaction'];
+  const featureV1 = _wallet.features['sui:signAndExecuteTransactionBlock'];
+
+  if (!featureV2 && !featureV1) {
+    throw new Error('Wallet does not support signAndExecuteTransaction.');
+  }
+
   const address = getConnectedAddress();
+  if (!address) throw new Error('Wallet connected but no address is available.');
+
   tx.setSender(address);
-  const result = await feat.signAndExecuteTransaction({
-    transaction: tx,
-    account: _wallet.accounts[0],
-    chain: 'sui:mainnet',
-  });
-  return result;
+
+  if (featureV2 && typeof featureV2.signAndExecuteTransaction === 'function') {
+    return await featureV2.signAndExecuteTransaction({
+      transaction: tx,
+      account: _wallet.accounts[0],
+      chain: 'sui:mainnet',
+    });
+  }
+
+  if (featureV1 && typeof featureV1.signAndExecuteTransactionBlock === 'function') {
+    return await featureV1.signAndExecuteTransactionBlock({
+      transactionBlock: tx,
+      account: _wallet.accounts[0],
+      chain: 'sui:mainnet',
+    });
+  }
+
+  throw new Error('Wallet sign and execute feature is malformed.');
+}
+
+export async function signAndExecuteTransaction(tx) {
+  return signAndExecute(tx);
 }
 
 // ---------------------------------------------------------------------------
@@ -151,6 +265,25 @@ export async function txRecordSubmission(formObjectId, submissionBlobId, submiss
 }
 
 /**
+ * Build a record_submission Transaction WITHOUT executing it.
+ * Used by signAndExecuteAnonymous to build the TX separately from signing.
+ */
+export function buildRecordSubmissionTx(formObjectId, submissionBlobId, submissionHash) {
+  const tx = new Transaction();
+  const clock = tx.object('0x6');
+  tx.moveCall({
+    target: `${PACKAGE_ID}::${MODULE}::record_submission`,
+    arguments: [
+      tx.object(formObjectId),
+      tx.pure.vector('u8', toBytes(submissionBlobId)),
+      tx.pure.vector('u8', toBytes(submissionHash)),
+      clock,
+    ],
+  });
+  return tx;
+}
+
+/**
  * Build + execute seal_form TX.
  * @param {string} formObjectId
  * @param {Uint8Array} manifestRoot — Merkle root bytes
@@ -195,7 +328,7 @@ export async function getWalForm(formObjectId) {
     submissionCount: Number(fields.submission_count),
     finalManifestRoot: fields.final_manifest_root ?? null,
     sealedAtMs: fields.sealed_at_ms ? Number(fields.sealed_at_ms) : null,
-    isSealed: Boolean(fields.sealed_at_ms),
+    isSealed: Boolean(fields.sealed_at_ms) || Boolean(fields.final_manifest_root),
   };
 }
 
@@ -219,7 +352,6 @@ export async function getSubmissionEvents(formObjectId) {
     for (const ev of page.data) {
       const f = ev.parsedJson;
       if (!f) continue;
-      // Filter by form_id
       if (f.form_id !== formObjectId) continue;
       results.push({
         formId: f.form_id,
@@ -238,6 +370,8 @@ export async function getSubmissionEvents(formObjectId) {
 
   return results.sort((a, b) => a.sequence - b.sequence);
 }
+
+export { getSubmissionEvents as getSubmissionsForForm };
 
 /**
  * Fetch the latest N SubmissionRecorded events across ALL forms.
@@ -276,10 +410,22 @@ export async function getEphemeralKeypair() {
 }
 
 /**
- * Sign and execute a TX using an ephemeral (session-only) keypair.
+ * Sign and execute a Transaction using an ephemeral (session-only) keypair.
  * The transaction is sent via the Sui RPC directly (no wallet popup).
+ *
+ * IMPORTANT: The ephemeral address has no SUI balance. This requires either:
+ *   (a) a gas sponsor (tx.setGasOwner) funded externally, or
+ *   (b) the caller to have pre-funded the ephemeral address.
+ * Without gas, the RPC will reject the TX with InsufficientGas.
+ * Connect a wallet to avoid this limitation.
  */
 export async function signAndExecuteAnonymous(tx) {
+  if (!(tx && typeof tx.setSender === 'function')) {
+    throw new Error(
+      'signAndExecuteAnonymous requires a Transaction object. ' +
+      'Use buildRecordSubmissionTx() to build one.'
+    );
+  }
   const kp = await getEphemeralKeypair();
   const address = kp.getPublicKey().toSuiAddress();
   tx.setSender(address);
@@ -296,14 +442,13 @@ export async function signAndExecuteAnonymous(tx) {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function encodeString(str) {
+export function encodeString(str) {
   return Array.from(new TextEncoder().encode(str));
 }
 
-function toBytes(input) {
+export function toBytes(input) {
   if (input instanceof Uint8Array) return Array.from(input);
   if (typeof input === 'string') {
-    // hex string
     const clean = input.startsWith('0x') ? input.slice(2) : input;
     const bytes = new Uint8Array(clean.length / 2);
     for (let i = 0; i < bytes.length; i++) {
