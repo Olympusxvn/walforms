@@ -378,6 +378,30 @@ strong {
   box-shadow: 0 4px 16px rgba(224, 72, 72, 0.35);
 }
 
+/* Connected wallet button */
+.btn--connected {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-family: monospace;
+}
+
+.btn--connected:hover {
+  background-color: var(--color-primary-dim);
+}
+
+/* Disconnect button — shown inline next to address when connected */
+.btn--disconnect {
+  color: var(--color-red, #e04848);
+  border-color: var(--color-red, #e04848);
+  font-size: var(--text-sm);
+}
+
+.btn--disconnect:hover {
+  background-color: rgba(224, 72, 72, 0.08);
+  border-color: var(--color-red, #e04848);
+  color: var(--color-red, #e04848);
+}
+
 /* Size modifier */
 .btn-lg {
   padding: 0.8125rem var(--sp-8);

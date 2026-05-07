@@ -52,10 +52,12 @@ function updateWalletButton() {
     btn.textContent = shortAddr(walletState.address);
     btn.classList.add('btn--connected');
     btn.title = walletState.address;
+    ensureDisconnectButton();
   } else {
     btn.textContent = 'Connect wallet';
     btn.classList.remove('btn--connected');
     btn.title = '';
+    removeDisconnectButton();
   }
 
   // Show preview-mode banner if no wallet available and on a page that needs it
@@ -63,6 +65,38 @@ function updateWalletButton() {
   if (needsWallet && !walletState.connected) {
     showPreviewBanner();
   }
+}
+
+function ensureDisconnectButton() {
+  if (document.getElementById('wallet-disconnect-btn')) return;
+  const btn = document.getElementById('wallet-connect-btn');
+  if (!btn) return;
+
+  const disconnectBtn = document.createElement('button');
+  disconnectBtn.id = 'wallet-disconnect-btn';
+  disconnectBtn.className = 'btn btn-ghost btn--disconnect';
+  disconnectBtn.type = 'button';
+  disconnectBtn.textContent = 'Disconnect';
+  btn.insertAdjacentElement('afterend', disconnectBtn);
+
+  disconnectBtn.addEventListener('click', async () => {
+    disconnectBtn.disabled = true;
+    try {
+      await disconnectWallet();
+      walletState.connected = false;
+      walletState.address = null;
+      walletState.walletName = null;
+    } catch (err) {
+      showStatusMessage(`Disconnect failed: ${err.message}`, 'error');
+      disconnectBtn.disabled = false;
+      return;
+    }
+    updateWalletButton();
+  });
+}
+
+function removeDisconnectButton() {
+  document.getElementById('wallet-disconnect-btn')?.remove();
 }
 
 function showPreviewBanner() {
@@ -83,14 +117,7 @@ async function handleWalletButtonClick() {
   const btn = document.getElementById('wallet-connect-btn');
   if (!btn) return;
 
-  if (walletState.connected) {
-    await disconnectWallet();
-    walletState.connected = false;
-    walletState.address = null;
-    walletState.walletName = null;
-    updateWalletButton();
-    return;
-  }
+  if (walletState.connected) return; // disconnect handled by #wallet-disconnect-btn
 
   btn.textContent = 'Connecting…';
   btn.disabled = true;

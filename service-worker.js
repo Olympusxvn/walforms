@@ -1,4 +1,4 @@
-const CACHE_NAME = 'walforms-shell-v1';
+const CACHE_NAME = 'walforms-shell-v3';
 const ASSETS = [
   '/',
   'index.html',
@@ -35,7 +35,23 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  const isAppAsset = request.destination === 'script' || request.destination === 'style' || request.destination === 'document';
+
+  if (isAppAsset) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    caches.match(request).then((cached) => cached || fetch(request))
   );
 });
