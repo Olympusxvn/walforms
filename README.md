@@ -22,24 +22,71 @@ WalForms is a Walrus-native feedback and form platform where form definitions an
 | Public cryptographic auditor | **Yes** | No | No | No |
 | Requires account to respond | **No** | Optional | No | Sometimes |
 
-## Architecture
+┌─────────────────────────────────────────────────────────────────┐
+│              WalForms — Architecture Overview                   │
+└─────────────────────────────────────────────────────────────────┘
 
-```
-Builder / Form filler / Dashboard / Verifier (static HTML/CSS/JS)
-          â”‚
-          â”œâ”€â”€ walrus.js  â”€â”€ PUT/GET â”€â”€â–º Walrus mainnet publisher / aggregator
-          â”‚                             (fallback chain + curl fallback UI)
-          â”‚
-          â”œâ”€â”€ sui.js  â”€â”€â”€â”€ TX â”€â”€â”€â”€â”€â”€â”€â”€â–º Sui Move contract (walforms.move)
-          â”‚                             create_form / record_submission / seal_form
-          â”‚
-          â””â”€â”€ crypto.js  (SHA-256, Merkle root, bytesToHex)
+STATIC FRONTEND (HTML / CSS / JS — deployed via Walgo on Walrus)
+┌──────────┐  ┌────────────┐  ┌───────────┐  ┌──────────┐
+│ builder  │  │    form    │  │ dashboard │  │  verify  │
+│  .html   │  │   .html    │  │   .html   │  │  .html   │
+└────┬─────┘  └─────┬──────┘  └─────┬─────┘  └────┬─────┘
+     │               │               │               │
+     └───────────────┴───────────────┴───────────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              │              │              │
+         walrus.js       sui.js        crypto.js
+              │              │              │
+    PUT /v1/blobs       sign TX        SHA-256 hash
+    GET /v1/blobs/{id}  via wallet     Merkle root
+              │              │
+    ┌─────────▼──┐    ┌──────▼──────────────────────────┐
+    │   Walrus   │    │         Sui mainnet              │
+    │  mainnet   │    │                                  │
+    │            │    │  walforms::registry              │
+    │ publisher  │    │  ┌────────────────────────────┐  │
+    │ (fallback  │    │  │ WalForm (shared object)    │  │
+    │  chain +   │    │  │  creator: address          │  │
+    │  curl UI)  │    │  │  title: String             │  │
+    │            │    │  │  definition_blob_id: bytes  │  │
+    │ aggregator │    │  │  definition_hash: bytes     │  │
+    │ (fallback  │    │  │  submission_count: u64      │  │
+    │  chain)    │    │  │  final_manifest_root: ?bytes│  │
+    └────────────┘    │  └────────────────────────────┘  │
+                      │                                  │
+                      │  Events (NOT stored in object):  │
+                      │  · FormCreated                   │
+                      │  · SubmissionRecorded            │
+                      │    (blob_id, hash, seq, time)    │
+                      │  · FormSealed                    │
+                      └──────────────────────────────────┘
 
-On-chain: WalForm object stores creator, title, submissionCount,
-          blobIds[], submissionHashes[], final_manifest_root (sealed).
+OFF-CHAIN (local browser only — NOT on Walrus, NOT on Sui):
+  IndexedDB: priority flags, admin notes, unsent submission queue
+  Never exposed in public verify — clearly documented in README
 
-Off-chain (local browser only): priority flags, notes â€” IndexedDB, not on-chain.
-```
+DATA FLOW — Create Form:
+  builder → serialize JSON → sha256 (crypto.js)
+          → PUT Walrus (walrus.js) → blobId
+          → sign create_form(title, blobId, hash) (sui.js)
+          → share URL: form.html?id=<WalForm-object-id>
+
+DATA FLOW — Submit Response:
+  form.html → serialize answers → sha256 (crypto.js)
+            → PUT Walrus (walrus.js) → subBlobId
+            → sign record_submission(formId, subBlobId, hash) (sui.js)
+            → emits SubmissionRecorded event (NOT stored in WalForm array)
+            → receipt: subBlobId + Sui TX
+
+DATA FLOW — Verify:
+  verify.html → fetch WalForm object (sui.js)
+              → fetch all SubmissionRecorded events for formId (sui.js)
+              → for each event: fetch blob (walrus.js) → sha256 (crypto.js)
+                                compare to event.submission_hash
+              → compute Merkle root (crypto.js) over all hashes
+              → compare to WalForm.final_manifest_root
+              → ✓ VERIFIED or ✗ TAMPERED
 
 ## Tech stack
 
@@ -125,27 +172,27 @@ If the Walrus Foundation deployed WalForms (or any feedback tool) for Session 3,
 
 ## Demo video script (< 3 min)
 
-**0:00â€“0:15 â€” Hook**
+**Hook**
 "Most feedback tools have a problem: the platform owner can edit, hide, or delete what was submitted. WalForms makes that impossible."
 
-**0:15â€“0:45 â€” Build a form**
+**Build a form**
 Open `builder.html`. Drag in 4 fields. Click Save. Show the Walrus blob upload pipeline, then the Sui wallet signature. Land on the share URL.
 
-**0:45â€“1:30 â€” Submit a response**
+**Submit a response**
 Open the form URL in a fresh window. Fill it out, attach a screenshot. Click submit. Show the upload pipeline. Land on the receipt with the submission blob ID and Sui TX.
 
-**1:30â€“2:15 â€” The differentiator**
+**The differentiator**
 Open `verify.html` in another fresh window. Paste the form ID. Watch it fetch all submissions, recompute hashes and the Merkle root, then compare to on-chain. Show the cyan **Verified** badge.
 
-**2:15â€“2:45 â€” The tamper test**
+**The tamper test**
 Describe what happens if someone tries to delete or alter a submission: the Merkle root no longer matches. The verifier turns red. The record is on Walrus forever.
 
-**2:45â€“3:00 â€” CTA**
+**CTA**
 "Open the form, fill it out, share the link. It can't be taken down."
 
 ## Credits
 
-Crafted with Claude Â· Directed by @OlympusXVN
+Crafted with Claude· Directed by @OlympusXVN
 
 ## License
 
