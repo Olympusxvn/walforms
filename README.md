@@ -11,7 +11,7 @@ WalForms is a Walrus-native feedback and form platform where form definitions an
 **URL:** https://walforms-app.netlify.app
 
 ## Architecture
-```
+``
 ## Why this is different
 
 | Feature | WalForms | Google Forms | Typeform | Notion Forms |
@@ -23,7 +23,7 @@ WalForms is a Walrus-native feedback and form platform where form definitions an
 | Anonymous submissions | **Yes** | Partial | No | No |
 | Public cryptographic auditor | **Yes** | No | No | No |
 | Requires account to respond | **No** | Optional | No | Sometimes |
-
+```
 ┌─────────────────────────────────────────────────────────────────┐
 │              WalForms — Architecture Overview                   │
 └─────────────────────────────────────────────────────────────────┘
