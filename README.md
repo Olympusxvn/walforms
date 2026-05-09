@@ -9,7 +9,7 @@ WalForms is a Walrus-native feedback and form platform where form definitions an
 ## Live demo
 
 **URL:** https://walforms-app.netlify.app
-
+```
 ## Why this is different
 
 | Feature | WalForms | Google Forms | Typeform | Notion Forms |
