@@ -9,6 +9,8 @@ WalForms is a Walrus-native feedback and form platform where form definitions an
 ## Live demo
 
 **URL:** https://walforms-app.netlify.app
+
+## Architecture
 ```
 ## Why this is different
 
@@ -87,6 +89,7 @@ DATA FLOW — Verify:
               → compute Merkle root (crypto.js) over all hashes
               → compare to WalForm.final_manifest_root
               → ✓ VERIFIED or ✗ TAMPERED
+```
 
 ## Tech stack
 
