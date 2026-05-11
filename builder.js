@@ -9,6 +9,7 @@ import { txCreateForm, isWalletConnected, getConnectedAddress } from './sui.js';
 // DOM refs
 // ---------------------------------------------------------------------------
 const palette       = document.getElementById('field-palette');
+const templateList  = document.getElementById('template-list');
 const canvas        = document.getElementById('form-canvas');
 const emptyState    = document.getElementById('canvas-empty-state');
 const propertiesEl  = document.getElementById('field-properties');
@@ -36,6 +37,123 @@ const state = {
 
 function getField(id) { return state.fields.find(f => f.id === id); }
 function getIndex(id) { return state.fields.findIndex(f => f.id === id); }
+
+// ---------------------------------------------------------------------------
+// Templates
+// ---------------------------------------------------------------------------
+
+function buildField(type, overrides = {}) {
+  const base = createField(type);
+  return Object.assign(base, overrides);
+}
+
+const TEMPLATES = {
+  websiteFeedback: () => ({
+    title: 'Website feedback',
+    fields: [
+      buildField('shortText', {
+        label: 'Page or feature you are giving feedback on',
+        required: false,
+      }),
+      buildField('rating', {
+        label: 'Overall experience with the website',
+        helpText: 'From 1 (very poor) to 5 (excellent).',
+        scale: 5,
+      }),
+      buildField('longText', {
+        label: 'What worked well for you?',
+        required: false,
+      }),
+      buildField('longText', {
+        label: 'Anything that felt confusing or could be smoother?',
+        required: false,
+      }),
+      buildField('email', {
+        label: 'Email (optional, for follow-up only)',
+        required: false,
+      }),
+      buildField('confirmationCheckbox', {
+        label: 'I understand this feedback will be stored permanently.',
+        required: true,
+        helpText: 'Your answers cannot be edited or removed after submission.',
+      }),
+    ],
+  }),
+
+  customerSurvey: () => ({
+    title: 'Customer survey',
+    fields: [
+      buildField('shortText', {
+        label: 'Name',
+        required: false,
+      }),
+      buildField('email', {
+        label: 'Email',
+        required: false,
+      }),
+      buildField('rating', {
+        label: 'How satisfied are you overall?',
+        helpText: '1 = not satisfied, 5 = very satisfied.',
+        scale: 5,
+      }),
+      buildField('singleChoice', {
+        label: 'Would you recommend us to a friend?',
+        options: ['Definitely', 'Maybe', 'Not sure yet'],
+      }),
+      buildField('longText', {
+        label: 'What did you find most helpful?',
+        required: false,
+      }),
+      buildField('longText', {
+        label: 'What could we improve for you?',
+        required: false,
+      }),
+    ],
+  }),
+
+  travelRequest: () => ({
+    title: 'Travel request',
+    fields: [
+      buildField('shortText', {
+        label: 'Full name',
+      }),
+      buildField('email', {
+        label: 'Work email',
+      }),
+      buildField('shortText', {
+        label: 'Team or department',
+      }),
+      buildField('shortText', {
+        label: 'Destination city / country',
+      }),
+      buildField('date', {
+        label: 'Departure date',
+      }),
+      buildField('date', {
+        label: 'Return date',
+      }),
+      buildField('singleChoice', {
+        label: 'Travel type',
+        options: ['Domestic', 'International'],
+      }),
+      buildField('number', {
+        label: 'Estimated budget (in local currency)',
+        required: false,
+      }),
+      buildField('longText', {
+        label: 'Purpose of this trip',
+      }),
+      buildField('longText', {
+        label: 'Additional notes (visa, hotel, special requirements)',
+        required: false,
+      }),
+      buildField('confirmationCheckbox', {
+        label: 'I confirm the information above is accurate to the best of my knowledge.',
+        required: true,
+      }),
+    ],
+  }),
+};
 
 // ---------------------------------------------------------------------------
 // Palette
@@ -134,6 +252,25 @@ function renderCanvas() {
 
     canvas.append(card);
   });
+}
+
+function applyTemplate(id) {
+  const factory = TEMPLATES[id];
+  if (!factory) return;
+  const { title, fields } = factory();
+
+  const hasExistingContent = (state.fields.length > 0) || (titleInput && titleInput.value.trim().length > 0);
+  if (hasExistingContent && !window.confirm('Apply template? This will replace the current fields.')) {
+    return;
+  }
+
+  state.fields = fields;
+  state.selectedId = state.fields[0]?.id ?? null;
+  if (titleInput) titleInput.value = title;
+
+  renderCanvas();
+  renderProperties();
+  window.walformsApp?.showStatusMessage?.('Template applied. You can now customize the fields.', 'info');
 }
 
 function renderProperties() {
@@ -384,6 +521,14 @@ function init() {
   renderProperties();
   attachCanvasDrop();
   attachModalEvents();
+
+  templateList?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-template-id]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-template-id');
+    if (!id) return;
+    applyTemplate(id);
+  });
 
   saveBtn?.addEventListener('click', saveForm);
   titleInput?.addEventListener('input', () => titleInput.classList.remove('input-error'));

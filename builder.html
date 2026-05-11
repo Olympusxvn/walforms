@@ -48,6 +48,26 @@
     .chip-media  { background: #E8F8FF; }
     .chip-ctrl   { background: #F0FFE8; }
 
+    /* Template thumbnails */
+    .template-thumb {
+      width: 44px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--color-border);
+      object-fit: cover;
+      background: var(--color-surface);
+      flex-shrink: 0;
+    }
+    .template-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-3);
+      justify-content: flex-start;
+      font-size: var(--text-sm);
+      padding-inline: var(--sp-3);
+      width: 100%;
+    }
+
     /* Canvas */
     .canvas-wrap {
       min-height: 480px;
@@ -243,10 +263,43 @@
       <!-- 3-column builder layout -->
       <div class="builder-layout">
 
-        <!-- Column 1: Field palette -->
-        <aside aria-label="Field types">
+        <!-- Column 1: Field palette + templates -->
+        <aside aria-label="Field types and templates">
           <p class="eyebrow" style="margin-bottom:var(--sp-4);">Field types</p>
-          <div id="field-palette" style="display:grid; gap:var(--sp-2);"></div>
+          <div id="field-palette" style="display:grid; gap:var(--sp-2); margin-bottom:var(--sp-6);"></div>
+
+          <div class="card" style="padding:var(--sp-4);">
+            <p class="eyebrow" style="margin-bottom:var(--sp-3);">Form templates</p>
+            <p style="font-size:var(--text-xs);color:var(--color-muted);margin-bottom:var(--sp-3);">
+              Start from a simple preset. You can always edit or add fields after applying a template.
+            </p>
+            <div id="template-list" style="display:grid;gap:var(--sp-2);">
+              <button
+                type="button"
+                class="btn btn-ghost template-btn"
+                data-template-id="websiteFeedback"
+              >
+                <img class="template-thumb" src="feedback_form_for_website.jpg" alt="Website feedback template" />
+                Website feedback
+              </button>
+              <button
+                type="button"
+                class="btn btn-ghost template-btn"
+                data-template-id="customerSurvey"
+              >
+                <img class="template-thumb" src="customer_survey_form.jpg" alt="Customer survey template" />
+                Customer survey
+              </button>
+              <button
+                type="button"
+                class="btn btn-ghost template-btn"
+                data-template-id="travelRequest"
+              >
+                <img class="template-thumb" src="travel_request_form.jpg" alt="Travel request template" />
+                Travel request
+              </button>
+            </div>
+          </div>
         </aside>
 
         <!-- Column 2: Canvas -->

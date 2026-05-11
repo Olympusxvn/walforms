@@ -8,6 +8,11 @@
   Added `email`, `phone`, `number`, `date`, and `time` field types to the palette and wired
   them through `renderFieldInput` and `readFieldValue` so they render and submit correctly.
 
+- **builder.html / builder.js — form templates (with thumbnails)**
+  Added a “Form templates” section in the builder sidebar with 3 starter presets
+  (Website feedback / Customer survey / Travel request). Template buttons show thumbnails
+  and apply a simple default title + field list you can customize.
+
 - **builder.html / builder.js — admin dashboard shortcut after save**
   Added an `Open admin dashboard` button in the success modal and linked it to
   `dashboard.html?id=<formObjectId>`.
@@ -28,6 +33,11 @@
   Removed explicit `Content-Type` on browser `PUT` upload to reduce CORS preflight failures on
   public publisher endpoints. Also expanded blob ID parsing to support multiple response shapes
   (`blobId`, `blob_id`, nested variants).
+
+- **builder.js — curl fallback when Walrus publishers fail**
+  When browser upload fails (e.g. CORS/publisher rejection), the builder shows a terminal `curl`
+  command to upload `form-definition.json` manually and then asks you to paste the resulting
+  Walrus Blob ID to continue the Sui `create_form` flow.
 
 - **builder.js / sui.js — reliable `formObjectId` extraction after `create_form`**
   Builder now requests `showObjectChanges` in wallet execution options and explicitly picks the
