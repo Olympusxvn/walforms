@@ -2,7 +2,7 @@
 
 import { fetchBlob, uploadBlob, curlFallback, WalrusUploadError } from './walrus.js';
 import { sha256, bytesToHex } from './crypto.js';
-import { renderFieldInput, readFieldValue } from './fields.js';
+import { renderFieldInput, readFieldValue, normalizeWalletAddress } from './fields.js';
 import {
   getWalForm,
   txRecordSubmission,
@@ -228,6 +228,17 @@ async function handleSubmit(e) {
       window.walformsApp?.showStatusMessage(`"${field.label}" is required.`, 'error');
       return;
     }
+    if (field.type === 'walletAddress') {
+      const raw = readFieldValue(field, wrapper);
+      if (raw && !normalizeWalletAddress(raw)) {
+        wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        window.walformsApp?.showStatusMessage(
+          `"${field.label}" must be a valid Sui address (0x + 64 hex, or 64 hex without 0x).`,
+          'error',
+        );
+        return;
+      }
+    }
   }
 
   window.walformsApp?.clearStatusMessage?.();
@@ -242,7 +253,7 @@ async function handleSubmit(e) {
 
     for (const { field, wrapper } of fieldWrappers) {
       const val = readFieldValue(field, wrapper);
-      if ((field.type === 'screenshot' || field.type === 'video') && val instanceof File) {
+      if ((field.type === 'screenshot' || field.type === 'video' || field.type === 'logoImage' || field.type === 'bannerImage') && val instanceof File) {
         const fileBytes = await val.arrayBuffer();
         try {
           const res = await uploadBlob(fileBytes, { epochs: 5 });
@@ -251,6 +262,8 @@ async function handleSubmit(e) {
         } catch (fileErr) {
           throw new Error(`Failed to upload ${field.label}: ${fileErr.message}`);
         }
+      } else if (field.type === 'walletAddress' && typeof val === 'string' && val) {
+        answers[field.id] = normalizeWalletAddress(val);
       } else {
         answers[field.id] = val;
       }

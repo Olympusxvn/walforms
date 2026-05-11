@@ -680,6 +680,54 @@ strong {
   color: var(--color-red);
 }
 
+.field-input--mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: -0.02em;
+}
+
+/* Logo / banner image slots (public form) */
+.wf-media-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.wf-media-slot {
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(142, 99, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  position: relative;
+  overflow: hidden;
+}
+
+.wf-media-slot-label {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.wf-media-slot--logo {
+  width: 100%;
+  max-width: 160px;
+  margin-inline: auto;
+  aspect-ratio: 1 / 1;
+}
+
+.wf-media-slot--banner {
+  width: 100%;
+  aspect-ratio: 3 / 1;
+}
+
+.wf-media-slot--banner[data-aspect="4:1"] {
+  aspect-ratio: 4 / 1;
+}
+
 /* --------------------------------------------------------------------------
    11. PASTEL CHIPS (field type tags)
    -------------------------------------------------------------------------- */

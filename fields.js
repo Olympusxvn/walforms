@@ -6,6 +6,7 @@ export const FIELD_TYPES = [
   { type: 'email',               label: 'Email',                category: 'text',   icon: '@',  description: 'Email address' },
   { type: 'phone',               label: 'Phone',                category: 'text',   icon: '☎',  description: 'Phone number' },
   { type: 'url',                 label: 'URL',                  category: 'text',   icon: '🔗', description: 'Website link' },
+  { type: 'walletAddress',       label: 'Wallet address',       category: 'text',   icon: '◇',  description: 'Sui address (0x…)' },
   { type: 'number',              label: 'Number',               category: 'number', icon: '#',  description: 'Numeric answer' },
   { type: 'date',                label: 'Date',                 category: 'date',   icon: '📅', description: 'Pick a date' },
   { type: 'time',                label: 'Time',                 category: 'date',   icon: '🕒', description: 'Pick a time' },
@@ -13,6 +14,8 @@ export const FIELD_TYPES = [
   { type: 'singleChoice',        label: 'Single choice',        category: 'choice', icon: '◉',  description: 'Pick one option' },
   { type: 'checkboxes',          label: 'Checkboxes',           category: 'choice', icon: '☑',  description: 'Pick multiple' },
   { type: 'dropdown',            label: 'Dropdown',             category: 'choice', icon: '▾',  description: 'Compact selector' },
+  { type: 'logoImage',           label: 'Logo (1:1)',           category: 'media',  icon: '◆',  description: 'Square brand logo' },
+  { type: 'bannerImage',         label: 'Banner (3:1 / 4:1)',   category: 'media',  icon: '▬',  description: 'Wide header image' },
   { type: 'screenshot',          label: 'Screenshot',           category: 'media',  icon: '🖼',  description: 'Upload image' },
   { type: 'video',               label: 'Video',                category: 'media',  icon: '▶',  description: 'Upload ≤30s clip' },
   { type: 'confirmationCheckbox',label: 'Confirmation',         category: 'ctrl',   icon: '✓',  description: 'Must agree before submit' },
@@ -33,7 +36,7 @@ const CATEGORY_CLASS = {
 export function createField(type) {
   const def = FIELD_TYPES.find(f => f.type === type);
   if (!def) return null;
-  return {
+  const base = {
     id: `f-${Math.random().toString(36).slice(2, 10)}`,
     type,
     label: def.label,
@@ -42,6 +45,10 @@ export function createField(type) {
     options: ['Option A', 'Option B', 'Option C'],
     scale: 5,
   };
+  if (type === 'bannerImage') {
+    base.bannerAspect = '3:1';
+  }
+  return base;
 }
 
 // ---------------------------------------------------------------------------
@@ -78,6 +85,7 @@ export function renderCanvasCard(field, { selected = false, onSelect, onDelete, 
   const def = FIELD_TYPES.find(f => f.type === field.type);
   const catClass = CATEGORY_CLASS[def?.category ?? 'text'];
   const kind = (def?.label ?? field.type).toUpperCase();
+  const mediaPreview = canvasMediaPreviewHtml(field);
 
   el.innerHTML = `
     <span class="drag-handle" title="Drag to reorder" aria-hidden="true">⠿</span>
@@ -90,6 +98,7 @@ export function renderCanvasCard(field, { selected = false, onSelect, onDelete, 
         <span class="palette-chip-icon ${catClass}" style="width:18px;height:18px;font-size:11px;display:inline-flex;vertical-align:middle">${def?.icon ?? '?'}</span>
         ${def?.label ?? field.type}${field.helpText ? ` · ${escHtml(field.helpText)}` : ''}
       </div>
+      ${mediaPreview}
     </div>
     <div class="canvas-field-actions">
       <button class="field-del-btn" type="button" title="Remove field" aria-label="Remove ${escHtml(field.label)}">✕</button>
@@ -154,6 +163,28 @@ export function renderFieldSettings(field, onChange) {
     el.append(optGroup);
   }
 
+  // Banner aspect ratio
+  if (field.type === 'bannerImage') {
+    const g = document.createElement('div');
+    g.className = 'field-group';
+    g.innerHTML = '<label class="field-label">Banner aspect ratio</label>';
+    const sel = document.createElement('select');
+    sel.className = 'field-select';
+    [['3:1', '3:1 (wide)'], ['4:1', '4:1 (extra wide)']].forEach(([val, label]) => {
+      const o = document.createElement('option');
+      o.value = val;
+      o.textContent = label;
+      if ((field.bannerAspect || '3:1') === val) o.selected = true;
+      sel.append(o);
+    });
+    sel.addEventListener('change', () => {
+      field.bannerAspect = sel.value;
+      onChange();
+    });
+    g.append(sel);
+    el.append(g);
+  }
+
   // Scale (rating)
   if (field.type === 'rating') {
     const g = document.createElement('div');
@@ -210,6 +241,19 @@ export function renderFieldInput(field, value = null) {
     case 'url':
       input = el('input', { type: 'url', className: 'field-input', id: field.id,
         placeholder: 'https://…', value: value ?? '' });
+      break;
+
+    case 'walletAddress':
+      input = el('input', {
+        type: 'text',
+        className: 'field-input field-input--mono',
+        id: field.id,
+        placeholder: '0x + 64 hex characters',
+        spellcheck: false,
+        autocapitalize: 'off',
+        autocomplete: 'off',
+        value: value ?? '',
+      });
       break;
 
     case 'number':
@@ -287,6 +331,36 @@ export function renderFieldInput(field, value = null) {
       break;
     }
 
+    case 'logoImage': {
+      const slot = el('div', {
+        className: 'wf-media-slot wf-media-slot--logo',
+        title: 'Recommended: square image (1:1)',
+      });
+      slot.innerHTML = '<span class="wf-media-slot-label">1:1</span>';
+      input = el('input', { type: 'file', className: 'field-input', id: field.id, accept: 'image/*' });
+      const holder = el('div', { className: 'wf-media-field' });
+      holder.append(slot, input);
+      wrapper.append(holder);
+      if (field.helpText) wrapper.append(el('p', { className: 'field-hint', textContent: field.helpText }));
+      return wrapper;
+    }
+
+    case 'bannerImage': {
+      const ar = field.bannerAspect === '4:1' ? '4:1' : '3:1';
+      const slot = el('div', {
+        className: 'wf-media-slot wf-media-slot--banner',
+        title: `Banner frame (${ar})`,
+      });
+      slot.dataset.aspect = ar;
+      slot.innerHTML = `<span class="wf-media-slot-label">${ar}</span>`;
+      input = el('input', { type: 'file', className: 'field-input', id: field.id, accept: 'image/*' });
+      const holder = el('div', { className: 'wf-media-field' });
+      holder.append(slot, input);
+      wrapper.append(holder);
+      if (field.helpText) wrapper.append(el('p', { className: 'field-hint', textContent: field.helpText }));
+      return wrapper;
+    }
+
     case 'screenshot':
       input = el('input', { type: 'file', className: 'field-input', id: field.id, accept: 'image/*' });
       break;
@@ -318,8 +392,8 @@ export function renderFieldInput(field, value = null) {
 /** Read the current value from a rendered renderFieldInput wrapper. */
 export function readFieldValue(field, wrapper) {
   switch (field.type) {
-    case 'shortText': case 'longText': case 'url': case 'email': case 'phone': case 'date': case 'time':
-      return wrapper.querySelector('input, textarea')?.value ?? '';
+    case 'shortText': case 'longText': case 'url': case 'email': case 'phone': case 'date': case 'time': case 'walletAddress':
+      return wrapper.querySelector('input, textarea')?.value?.trim() ?? '';
     case 'number': {
       const raw = wrapper.querySelector('input')?.value ?? '';
       return raw === '' ? '' : Number(raw);
@@ -332,7 +406,7 @@ export function readFieldValue(field, wrapper) {
       return [...wrapper.querySelectorAll('input[type=checkbox]:checked')].map(c => c.value);
     case 'dropdown':
       return wrapper.querySelector('select')?.value ?? null;
-    case 'screenshot': case 'video':
+    case 'screenshot': case 'video': case 'logoImage': case 'bannerImage':
       return wrapper.querySelector('input[type=file]')?.files?.[0] ?? null;
     case 'confirmationCheckbox':
       return wrapper.querySelector('input[type=checkbox]')?.checked ?? false;
@@ -371,4 +445,34 @@ function escHtml(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+/** Mini layout hint on builder canvas for logo / banner fields */
+function canvasMediaPreviewHtml(field) {
+  if (field.type === 'logoImage') {
+    return `
+      <div class="canvas-media-row" aria-hidden="true">
+        <div class="canvas-media-slot canvas-media-slot--logo" title="1:1 logo"><span>1:1</span></div>
+      </div>`;
+  }
+  if (field.type === 'bannerImage') {
+    const ar = field.bannerAspect === '4:1' ? '4:1' : '3:1';
+    return `
+      <div class="canvas-media-row" aria-hidden="true">
+        <div class="canvas-media-slot canvas-media-slot--banner" data-aspect="${ar}" title="Banner ${ar}"><span>${ar}</span></div>
+      </div>`;
+  }
+  return '';
+}
+
+/** Normalize Sui address: 0x + 64 hex. Returns null if invalid. */
+export function normalizeWalletAddress(raw) {
+  if (raw == null) return null;
+  let s = String(raw).trim();
+  if (!s) return null;
+  if (!s.startsWith('0x')) {
+    if (/^[a-fA-F0-9]{64}$/.test(s)) s = `0x${s}`;
+    else return null;
+  }
+  return /^0x[a-fA-F0-9]{64}$/.test(s) ? s.toLowerCase() : null;
 }

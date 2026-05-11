@@ -113,6 +113,31 @@
       padding: 3px 8px;
     }
     .canvas-field-meta { font-size: 12px; color: var(--color-muted); margin-top: 2px; }
+    .canvas-media-row { margin-top: var(--sp-3); }
+    .canvas-media-slot {
+      border: 1.5px dashed var(--color-border);
+      border-radius: var(--radius-sm);
+      background: rgba(142, 99, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+    .canvas-media-slot--logo {
+      width: 48px;
+      aspect-ratio: 1 / 1;
+    }
+    .canvas-media-slot--banner {
+      width: 100%;
+      max-width: 220px;
+      aspect-ratio: 3 / 1;
+    }
+    .canvas-media-slot--banner[data-aspect="4:1"] {
+      aspect-ratio: 4 / 1;
+    }
     .canvas-field-actions { display: flex; gap: var(--sp-2); }
     .field-del-btn {
       background: none; border: none; cursor: pointer;
