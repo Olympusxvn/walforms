@@ -3,7 +3,12 @@
 export const FIELD_TYPES = [
   { type: 'shortText',           label: 'Short text',           category: 'text',   icon: 'T',  description: 'One-line answer' },
   { type: 'longText',            label: 'Long text',            category: 'text',   icon: '¶',  description: 'Open paragraph' },
+  { type: 'email',               label: 'Email',                category: 'text',   icon: '@',  description: 'Email address' },
+  { type: 'phone',               label: 'Phone',                category: 'text',   icon: '☎',  description: 'Phone number' },
   { type: 'url',                 label: 'URL',                  category: 'text',   icon: '🔗', description: 'Website link' },
+  { type: 'number',              label: 'Number',               category: 'number', icon: '#',  description: 'Numeric answer' },
+  { type: 'date',                label: 'Date',                 category: 'date',   icon: '📅', description: 'Pick a date' },
+  { type: 'time',                label: 'Time',                 category: 'date',   icon: '🕒', description: 'Pick a time' },
   { type: 'rating',              label: 'Rating',               category: 'choice', icon: '★',  description: '1–5 star scale' },
   { type: 'singleChoice',        label: 'Single choice',        category: 'choice', icon: '◉',  description: 'Pick one option' },
   { type: 'checkboxes',          label: 'Checkboxes',           category: 'choice', icon: '☑',  description: 'Pick multiple' },
@@ -18,6 +23,8 @@ const CATEGORY_CLASS = {
   choice: 'chip-choice',
   media:  'chip-media',
   ctrl:   'chip-ctrl',
+  date:   'chip-date',
+  number: 'chip-number',
 };
 
 // ---------------------------------------------------------------------------
@@ -70,11 +77,15 @@ export function renderCanvasCard(field, { selected = false, onSelect, onDelete, 
 
   const def = FIELD_TYPES.find(f => f.type === field.type);
   const catClass = CATEGORY_CLASS[def?.category ?? 'text'];
+  const kind = (def?.label ?? field.type).toUpperCase();
 
   el.innerHTML = `
     <span class="drag-handle" title="Drag to reorder" aria-hidden="true">⠿</span>
     <div class="canvas-field-body">
-      <div class="canvas-field-label">${escHtml(field.label)}${field.required ? ' <span style="color:var(--color-red)">*</span>' : ''}</div>
+      <div class="canvas-field-label">
+        ${escHtml(field.label)}${field.required ? ' <span style="color:var(--color-red)">*</span>' : ''}
+        <span class="canvas-field-kind">${escHtml(kind)}</span>
+      </div>
       <div class="canvas-field-meta">
         <span class="palette-chip-icon ${catClass}" style="width:18px;height:18px;font-size:11px;display:inline-flex;vertical-align:middle">${def?.icon ?? '?'}</span>
         ${def?.label ?? field.type}${field.helpText ? ` · ${escHtml(field.helpText)}` : ''}
@@ -186,9 +197,31 @@ export function renderFieldInput(field, value = null) {
       input.value = value ?? '';
       break;
 
+    case 'email':
+      input = el('input', { type: 'email', className: 'field-input', id: field.id,
+        placeholder: 'name@example.com', value: value ?? '' });
+      break;
+
+    case 'phone':
+      input = el('input', { type: 'tel', className: 'field-input', id: field.id,
+        placeholder: '+84 9xx xxx xxx', value: value ?? '' });
+      break;
+
     case 'url':
       input = el('input', { type: 'url', className: 'field-input', id: field.id,
         placeholder: 'https://…', value: value ?? '' });
+      break;
+
+    case 'number':
+      input = el('input', { type: 'number', className: 'field-input', id: field.id, value: value ?? '' });
+      break;
+
+    case 'date':
+      input = el('input', { type: 'date', className: 'field-input', id: field.id, value: value ?? '' });
+      break;
+
+    case 'time':
+      input = el('input', { type: 'time', className: 'field-input', id: field.id, value: value ?? '' });
       break;
 
     case 'rating': {
@@ -285,8 +318,12 @@ export function renderFieldInput(field, value = null) {
 /** Read the current value from a rendered renderFieldInput wrapper. */
 export function readFieldValue(field, wrapper) {
   switch (field.type) {
-    case 'shortText': case 'longText': case 'url':
+    case 'shortText': case 'longText': case 'url': case 'email': case 'phone': case 'date': case 'time':
       return wrapper.querySelector('input, textarea')?.value ?? '';
+    case 'number': {
+      const raw = wrapper.querySelector('input')?.value ?? '';
+      return raw === '' ? '' : Number(raw);
+    }
     case 'rating':
       return Number(wrapper.querySelector('[data-value]')?.dataset.value ?? 0);
     case 'singleChoice':

@@ -2,9 +2,45 @@
 
 ## [Unreleased] — 2026-05-07
 
+### Added
+
+- **fields.js — new question types in builder/form canvas**
+  Added `email`, `phone`, `number`, `date`, and `time` field types to the palette and wired
+  them through `renderFieldInput` and `readFieldValue` so they render and submit correctly.
+
+- **builder.html / builder.js — admin dashboard shortcut after save**
+  Added an `Open admin dashboard` button in the success modal and linked it to
+  `dashboard.html?id=<formObjectId>`.
+
+- **dashboard.js / dashboard.html — professional admin UX polish**
+  Added access badges (`Access as Creator` / `Access as Admin`), manual refresh, auto-refresh
+  every 30s (when tab is active), and last-sync status for smoother dashboard operations.
+
+- **tests/dashboard-auth.smoke.spec.js — Playwright smoke E2E for admin auth**
+  Added Chromium smoke tests for three key paths: creator access, admin-cap access, and blocked
+  access for non-admin/non-creator wallets.
+
 ### Fixed
 
 #### Critical
+
+- **walrus.js — browser upload compatibility improved for Netlify/CORS scenarios**
+  Removed explicit `Content-Type` on browser `PUT` upload to reduce CORS preflight failures on
+  public publisher endpoints. Also expanded blob ID parsing to support multiple response shapes
+  (`blobId`, `blob_id`, nested variants).
+
+- **builder.js / sui.js — reliable `formObjectId` extraction after `create_form`**
+  Builder now requests `showObjectChanges` in wallet execution options and explicitly picks the
+  created `::registry::WalForm` object from transaction changes instead of using the first
+  created object. This prevents wrong IDs that could break form/dashboard links.
+
+- **dashboard.js / dashboard.html / sui.js — admin-cap aware dashboard authorization**
+  Dashboard access now matches on-chain policy: allow either form creator or addresses listed in
+  shared `AdminCap.admins` (loaded via `ADMIN_CAP_ID`). The old creator-only check is removed.
+
+- **app.js / sui.js — connect/disconnect wallet flow hardened**
+  Wallet button now acts as a connect/disconnect toggle, and disconnect clears both local wallet
+  and account state while attempting provider disconnect across discovered wallets.
 
 - **sui.js — duplicate declaration block removed**
   Lines 432–716 were a verbatim re-declaration of every exported function and constant. In

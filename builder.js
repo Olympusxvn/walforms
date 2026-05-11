@@ -20,6 +20,7 @@ const modalShareUrl = document.getElementById('modal-share-url');
 const modalCopyBtn  = document.getElementById('modal-copy-btn');
 const modalCloseBtn = document.getElementById('modal-close-btn');
 const modalFormLink = document.getElementById('modal-form-link');
+const modalDashLink = document.getElementById('modal-dashboard-link');
 const modalBlobId   = document.getElementById('modal-blob-id');
 const modalFormId   = document.getElementById('modal-form-id');
 const modalHash     = document.getElementById('modal-hash');
@@ -303,6 +304,9 @@ async function saveForm() {
     // Step 4 — extract form object ID from tx effects
     renderProgressSteps('confirm', statuses);
     const formObjectId = extractCreatedObjectId(txResult);
+    if (!String(formObjectId).startsWith('0x')) {
+      throw new Error('Could not determine created form object ID from transaction response.');
+    }
     statuses.confirm = 'done';
     renderProgressSteps('confirm', statuses);
 
@@ -318,8 +322,15 @@ async function saveForm() {
 }
 
 function extractCreatedObjectId(txResult) {
-  // Try effects.created array (wallet-standard response shape)
-  const created = txResult?.effects?.created ?? txResult?.objectChanges?.filter(c => c.type === 'created') ?? [];
+  // Prefer objectChanges so we can reliably pick the WalForm object.
+  const createdChanges = txResult?.objectChanges?.filter(c => c.type === 'created') ?? [];
+  const walFormChange = createdChanges.find(c =>
+    typeof c.objectType === 'string' && c.objectType.endsWith('::registry::WalForm')
+  );
+  if (walFormChange?.objectId) return walFormChange.objectId;
+
+  // Fallback: effects.created array (wallet-standard response shape)
+  const created = txResult?.effects?.created ?? createdChanges;
   for (const obj of created) {
     const id = obj.objectId ?? obj.reference?.objectId;
     if (id) return id;
@@ -330,6 +341,7 @@ function extractCreatedObjectId(txResult) {
 
 function showSuccessModal({ blobId, formObjectId, hashHex }) {
   if (!modal) return;
+  const dashboardUrl = `dashboard.html?id=${formObjectId}`;
   const formUrl = `form.html?id=${formObjectId}`;
   const fullUrl = `${location.origin}${location.pathname.replace('builder.html', '')}${formUrl}`;
 
@@ -338,6 +350,7 @@ function showSuccessModal({ blobId, formObjectId, hashHex }) {
   if (modalFormId)   modalFormId.textContent = formObjectId;
   if (modalHash)     modalHash.textContent = hashHex;
   if (modalFormLink) modalFormLink.href = formUrl;
+  if (modalDashLink) modalDashLink.href = dashboardUrl;
 
   modal.hidden = false;
   modal.focus?.();

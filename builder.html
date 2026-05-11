@@ -82,12 +82,13 @@
       padding: var(--sp-4) var(--sp-5);
       border-radius: var(--radius-md);
       border: 1.5px solid var(--color-border);
-      background: #fff;
+      background: linear-gradient(180deg, #FFFFFF 0%, #FCFAFF 100%);
       cursor: pointer;
       margin-bottom: var(--sp-3);
-      transition: border-color var(--transition-fast);
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
     }
     .canvas-field:last-child { margin-bottom: 0; }
+    .canvas-field:hover { border-color: rgba(142,99,255,.45); box-shadow: 0 6px 14px rgba(15, 17, 21, 0.08); transform: translateY(-1px); }
     .canvas-field.selected { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(142,99,255,.12); }
     .canvas-field.drag-target { border-color: var(--color-cyan); }
     .drag-handle {
@@ -99,7 +100,18 @@
     }
     .drag-handle:active { cursor: grabbing; }
     .canvas-field-body { min-width: 0; }
-    .canvas-field-label { font-size: var(--text-sm); font-weight: 600; }
+    .canvas-field-label { font-size: var(--text-sm); font-weight: 600; display:flex; align-items:center; gap:var(--sp-2); flex-wrap:wrap; }
+    .canvas-field-kind {
+      font-size: 10px;
+      line-height: 1;
+      letter-spacing: .08em;
+      font-weight: 700;
+      color: var(--color-primary);
+      border: 1px solid rgba(142,99,255,.28);
+      background: rgba(142,99,255,.08);
+      border-radius: var(--radius-full);
+      padding: 3px 8px;
+    }
     .canvas-field-meta { font-size: 12px; color: var(--color-muted); margin-top: 2px; }
     .canvas-field-actions { display: flex; gap: var(--sp-2); }
     .field-del-btn {
@@ -278,6 +290,7 @@
 
       <div style="display:flex; gap:var(--sp-3);">
         <a id="modal-form-link" href="#" class="btn btn-primary" target="_blank" rel="noopener">Open form</a>
+        <a id="modal-dashboard-link" href="#" class="btn btn-ghost" target="_blank" rel="noopener">Open admin dashboard</a>
         <button id="modal-close-btn" class="btn btn-ghost" type="button">Close</button>
       </div>
     </div>

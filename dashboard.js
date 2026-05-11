@@ -3,7 +3,7 @@
 
 import { fetchBlob } from './walrus.js';
 import { sha256, bytesToHex, merkleRoot } from './crypto.js';
-import { getWalForm, getSubmissionEvents, txSealForm, isWalletConnected, getConnectedAddress } from './sui.js';
+import { getWalForm, getSubmissionEvents, txSealForm, isWalletConnected, getConnectedAddress, getAdminAddresses } from './sui.js';
 
 // ---------------------------------------------------------------------------
 // DOM refs
@@ -14,6 +14,10 @@ const authMsg       = document.getElementById('auth-message');
 const dashEl        = document.getElementById('dashboard');
 const titleEl       = document.getElementById('dash-form-title');
 const metaEl        = document.getElementById('dash-form-meta');
+const accessBadgeEl = document.getElementById('dash-access-badge');
+const refreshBtn    = document.getElementById('refresh-btn');
+const syncPillEl    = document.getElementById('dash-sync-pill');
+const lastSyncEl    = document.getElementById('dash-last-sync');
 const sealedBanner  = document.getElementById('sealed-banner');
 const sealedMeta    = document.getElementById('sealed-meta');
 const sealBtn       = document.getElementById('seal-btn');
@@ -37,6 +41,8 @@ let walForm   = null;
 let events    = [];          // raw SubmissionRecorded events
 let blobs     = {};          // blobId -> parsed JSON (lazy loaded)
 let localMeta = {};          // blobId -> { note, flagged, priority }
+let adminAddresses = [];
+let refreshIntervalId = null;
 
 const formId = new URLSearchParams(location.search).get('id');
 
@@ -96,7 +102,7 @@ async function init() {
   // Check wallet connection — poll until connected or timeout
   if (!isWalletConnected()) {
     authMsg.innerHTML = `Connect your wallet to access the admin dashboard.<br>
-      <span style="font-size:var(--text-sm);color:var(--color-muted)">Only the form creator can view this page.</span>`;
+      <span style="font-size:var(--text-sm);color:var(--color-muted)">Only the form creator or an admin wallet can view this page.</span>`;
     // Re-check every second until connected (app.js handles the connect button)
     const interval = setInterval(async () => {
       if (isWalletConnected()) {
@@ -124,11 +130,19 @@ async function loadDashboard() {
   // Auth check — only creator can view
   const creator = walForm.creator?.toLowerCase();
   const viewer  = getConnectedAddress()?.toLowerCase();
-  if (creator && viewer && creator !== viewer) {
+  try {
+    adminAddresses = await getAdminAddresses();
+  } catch {
+    adminAddresses = [];
+  }
+  const isAdmin = Boolean(viewer && adminAddresses.includes(viewer));
+  const isCreator = Boolean(viewer && creator === viewer);
+  const canView = Boolean(viewer && (isCreator || isAdmin));
+  if (!canView) {
     authMsg.innerHTML = `
       <strong>Not authorized</strong><br>
       <span style="font-size:var(--text-sm);color:var(--color-muted)">
-        Only the form creator (<code>${shortAddr(walForm.creator)}</code>) can view this dashboard.
+        Only the form creator (<code>${shortAddr(walForm.creator)}</code>) or an admin wallet can view this dashboard.
         You are connected as <code>${shortAddr(getConnectedAddress())}</code>.
       </span>`;
     return;
@@ -141,6 +155,21 @@ async function loadDashboard() {
   // Fill header
   titleEl.textContent = walForm.title || 'Untitled form';
   metaEl.textContent  = `${walForm.submissionCount} submission${walForm.submissionCount !== 1 ? 's' : ''} · Created by ${shortAddr(walForm.creator)}`;
+  if (accessBadgeEl) {
+    if (isCreator) {
+      accessBadgeEl.hidden = false;
+      accessBadgeEl.dataset.access = 'creator';
+      accessBadgeEl.textContent = 'Access as Creator';
+    } else if (isAdmin) {
+      accessBadgeEl.hidden = false;
+      accessBadgeEl.dataset.access = 'admin';
+      accessBadgeEl.textContent = 'Access as Admin';
+    } else {
+      accessBadgeEl.hidden = true;
+      accessBadgeEl.textContent = '';
+      delete accessBadgeEl.dataset.access;
+    }
+  }
 
   // Sealed state
   if (walForm.isSealed) {
@@ -158,19 +187,64 @@ async function loadDashboard() {
   // Load local metadata from IndexedDB
   try { await loadAllMeta(); } catch { /* non-fatal */ }
 
-  // Fetch submission events
-  try {
-    events = await getSubmissionEvents(formId);
-  } catch (e) {
-    window.walformsApp?.showStatusMessage(`Could not load submissions: ${e.message}`, 'error');
-    events = [];
-  }
-
-  renderList();
+  await refreshSubmissions({ silent: false });
   attachFilterEvents();
   attachSealEvents();
+  attachRefreshEvents();
+  startAutoRefresh();
   csvBtn?.addEventListener('click', exportCSV);
 }
+
+function updateLastSync() {
+  const now = new Date();
+  if (lastSyncEl) lastSyncEl.textContent = `Last sync: ${now.toLocaleTimeString()}`;
+  if (syncPillEl) syncPillEl.hidden = false;
+}
+
+function updateHeaderMetaLiveCount() {
+  if (!metaEl || !walForm) return;
+  const count = events.length;
+  metaEl.textContent = `${count} submission${count !== 1 ? 's' : ''} · Created by ${shortAddr(walForm.creator)}`;
+}
+
+async function refreshSubmissions({ silent = true } = {}) {
+  if (refreshBtn) {
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = 'Refreshing…';
+  }
+  try {
+    events = await getSubmissionEvents(formId);
+    updateHeaderMetaLiveCount();
+    renderList();
+    updateLastSync();
+    if (!silent) {
+      window.walformsApp?.showStatusMessage(`Dashboard synced (${events.length} submission${events.length !== 1 ? 's' : ''}).`, 'info');
+    }
+  } catch (e) {
+    if (!silent) window.walformsApp?.showStatusMessage(`Could not refresh submissions: ${e.message}`, 'error');
+  } finally {
+    if (refreshBtn) {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = 'Refresh';
+    }
+  }
+}
+
+function attachRefreshEvents() {
+  refreshBtn?.addEventListener('click', () => refreshSubmissions({ silent: false }));
+}
+
+function startAutoRefresh() {
+  if (refreshIntervalId) clearInterval(refreshIntervalId);
+  refreshIntervalId = setInterval(() => {
+    if (document.hidden) return;
+    refreshSubmissions({ silent: true });
+  }, 30000);
+}
+
+window.addEventListener('beforeunload', () => {
+  if (refreshIntervalId) clearInterval(refreshIntervalId);
+});
 
 // ---------------------------------------------------------------------------
 // Render

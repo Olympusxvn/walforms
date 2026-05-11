@@ -1,0 +1,25 @@
+{
+  "name": "walforms",
+  "version": "1.0.0",
+  "description": "> **Forms that can't be gaslit.** Every submission is a permanent Walrus blob, every form has an on-chain Sui integrity manifest, and every viewer can independently verify that nothing was edited or deleted.",
+  "main": "app.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test tests/dashboard-auth.smoke.spec.js --project=chromium"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Olympusxvn/walforms.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Olympusxvn/walforms/issues"
+  },
+  "homepage": "https://github.com/Olympusxvn/walforms#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
+  }
+}

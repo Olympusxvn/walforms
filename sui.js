@@ -12,6 +12,7 @@ import { getWallets } from 'https://esm.sh/@mysten/wallet-standard@0.2.0';
 const walletsApi = getWallets();
 let _wallets = [];
 let _wallet = null;
+let _account = null;
 
 function isSuiWallet(w) {
   return w?.features && (
@@ -105,14 +106,26 @@ const SUI_RPC = getFullnodeUrl('mainnet');
 
 export const suiClient = new SuiClient({ url: SUI_RPC });
 
+function getE2EMock(key) {
+  return globalThis?.__WALFORMS_E2E_MOCKS__?.[key];
+}
+
 // ---------------------------------------------------------------------------
 // Wallet connection state
 // ---------------------------------------------------------------------------
 
 export function getConnectedWallet() { return _wallet; }
-export function getConnectedAddress() { return _wallet?.accounts?.[0]?.address ?? null; }
-export function getAccount() { return _wallet?.accounts?.[0] ?? null; }
-export function isWalletConnected() { return Boolean(_wallet && getConnectedAddress()); }
+export function getConnectedAddress() {
+  const mockedAddress = getE2EMock('connectedAddress');
+  if (typeof mockedAddress === 'string') return mockedAddress;
+  return _account?.address ?? null;
+}
+export function getAccount() { return _account ?? null; }
+export function isWalletConnected() {
+  const mockedConnected = getE2EMock('walletConnected');
+  if (typeof mockedConnected === 'boolean') return mockedConnected;
+  return Boolean(_wallet && getConnectedAddress());
+}
 
 /** Returns currently discovered Sui wallets. Refreshes from API. */
 export function getInstalledWallets() {
@@ -152,10 +165,13 @@ export async function connectWallet(preferredWallet = null) {
 
   const result = await connectFeature.connect();
   _wallet = wallet;
+  _account = null;
 
   // Some wallets return accounts from connect(), others store on wallet object
   if (result?.accounts?.length) {
-    _wallet = { ..._wallet, accounts: result.accounts };
+    _account = result.accounts[0];
+  } else if (wallet?.accounts?.length) {
+    _account = wallet.accounts[0];
   }
 
   const address = getConnectedAddress();
@@ -167,16 +183,20 @@ export async function connectWallet(preferredWallet = null) {
 }
 
 export async function disconnectWallet() {
-  if (!_wallet) return;
-  const feat = _wallet.features['standard:disconnect'] ?? _wallet.features['sui:disconnect'];
-  if (feat && typeof feat.disconnect === 'function') {
-    try {
-      await feat.disconnect();
-    } catch (err) {
-      console.warn('Disconnect error (non-fatal):', err);
+  // Try to disconnect all known wallets to ensure session is fully cleared.
+  const candidates = [...new Set([_wallet, ...getInstalledWallets()].filter(Boolean))];
+  for (const wallet of candidates) {
+    const feat = wallet.features?.['standard:disconnect'] ?? wallet.features?.['sui:disconnect'];
+    if (feat && typeof feat.disconnect === 'function') {
+      try {
+        await feat.disconnect();
+      } catch (err) {
+        console.warn(`Disconnect error for ${wallet.name} (non-fatal):`, err);
+      }
     }
   }
   _wallet = null;
+  _account = null;
 }
 
 /** Sign and execute a Transaction using the connected wallet. Returns SuiTransactionBlockResponse. */
@@ -198,16 +218,18 @@ export async function signAndExecute(tx) {
   if (featureV2 && typeof featureV2.signAndExecuteTransaction === 'function') {
     return await featureV2.signAndExecuteTransaction({
       transaction: tx,
-      account: _wallet.accounts[0],
+      account: _account,
       chain: 'sui:mainnet',
+      options: { showEffects: true, showObjectChanges: true, showEvents: true },
     });
   }
 
   if (featureV1 && typeof featureV1.signAndExecuteTransactionBlock === 'function') {
     return await featureV1.signAndExecuteTransactionBlock({
       transactionBlock: tx,
-      account: _wallet.accounts[0],
+      account: _account,
       chain: 'sui:mainnet',
+      options: { showEffects: true, showObjectChanges: true, showEvents: true },
     });
   }
 
@@ -306,11 +328,57 @@ export async function txSealForm(formObjectId, manifestRoot) {
 // Object / Event Queries
 // ---------------------------------------------------------------------------
 
+function normalizeAddressList(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(v => typeof v === 'string');
+  // Move vectors may be wrapped by SDK as { fields: { contents: [...] } }.
+  if (Array.isArray(value?.fields?.contents)) {
+    return value.fields.contents.filter(v => typeof v === 'string');
+  }
+  if (Array.isArray(value?.contents)) {
+    return value.contents.filter(v => typeof v === 'string');
+  }
+  return [];
+}
+
+/**
+ * Fetch admin addresses from shared AdminCap object.
+ */
+export async function getAdminAddresses() {
+  const mockedAdmins = getE2EMock('adminAddresses');
+  if (Array.isArray(mockedAdmins)) return mockedAdmins.map(a => String(a).toLowerCase());
+
+  const obj = await suiClient.getObject({
+    id: ADMIN_CAP_ID,
+    options: { showContent: true, showType: true },
+  });
+  if (obj.error) throw new Error(`AdminCap ${ADMIN_CAP_ID} not found: ${obj.error.code}`);
+  const fields = obj.data?.content?.fields;
+  const admins = normalizeAddressList(fields?.admins);
+  return admins.map(a => a.toLowerCase());
+}
+
 /**
  * Fetch a WalForm Sui object by its ID.
  * Returns the parsed fields object or throws.
  */
 export async function getWalForm(formObjectId) {
+  const mockedForm = getE2EMock('walForm');
+  if (mockedForm && typeof mockedForm === 'object') {
+    return {
+      id: mockedForm.id ?? formObjectId,
+      title: mockedForm.title ?? 'Mocked form',
+      creator: mockedForm.creator ?? '0x0',
+      definitionBlobId: mockedForm.definitionBlobId ?? [],
+      definitionHash: mockedForm.definitionHash ?? [],
+      createdAtMs: Number(mockedForm.createdAtMs ?? Date.now()),
+      submissionCount: Number(mockedForm.submissionCount ?? 0),
+      finalManifestRoot: mockedForm.finalManifestRoot ?? null,
+      sealedAtMs: mockedForm.sealedAtMs ? Number(mockedForm.sealedAtMs) : null,
+      isSealed: Boolean(mockedForm.isSealed),
+    };
+  }
+
   const obj = await suiClient.getObject({
     id: formObjectId,
     options: { showContent: true, showType: true },
@@ -337,6 +405,14 @@ export async function getWalForm(formObjectId) {
  * Returns array of event objects sorted by sequence ascending.
  */
 export async function getSubmissionEvents(formObjectId) {
+  const mockedEvents = getE2EMock('submissionEvents');
+  if (Array.isArray(mockedEvents)) {
+    return mockedEvents
+      .map(ev => ({ ...ev }))
+      .filter(ev => !ev.formId || ev.formId === formObjectId)
+      .sort((a, b) => Number(a.sequence ?? 0) - Number(b.sequence ?? 0));
+  }
+
   const results = [];
   let cursor = null;
 

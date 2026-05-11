@@ -49,15 +49,15 @@ function updateWalletButton() {
   if (!btn) return;
 
   if (walletState.connected) {
-    btn.textContent = shortAddr(walletState.address);
+    btn.textContent = `${shortAddr(walletState.address)} (Disconnect)`;
     btn.classList.add('btn--connected');
     btn.title = walletState.address;
-    ensureDisconnectButton();
+    document.getElementById('wallet-install-prompt')?.remove();
+    document.getElementById('preview-mode-banner')?.remove();
   } else {
     btn.textContent = 'Connect wallet';
     btn.classList.remove('btn--connected');
     btn.title = '';
-    removeDisconnectButton();
   }
 
   // Show preview-mode banner if no wallet available and on a page that needs it
@@ -65,38 +65,6 @@ function updateWalletButton() {
   if (needsWallet && !walletState.connected) {
     showPreviewBanner();
   }
-}
-
-function ensureDisconnectButton() {
-  if (document.getElementById('wallet-disconnect-btn')) return;
-  const btn = document.getElementById('wallet-connect-btn');
-  if (!btn) return;
-
-  const disconnectBtn = document.createElement('button');
-  disconnectBtn.id = 'wallet-disconnect-btn';
-  disconnectBtn.className = 'btn btn-ghost btn--disconnect';
-  disconnectBtn.type = 'button';
-  disconnectBtn.textContent = 'Disconnect';
-  btn.insertAdjacentElement('afterend', disconnectBtn);
-
-  disconnectBtn.addEventListener('click', async () => {
-    disconnectBtn.disabled = true;
-    try {
-      await disconnectWallet();
-      walletState.connected = false;
-      walletState.address = null;
-      walletState.walletName = null;
-    } catch (err) {
-      showStatusMessage(`Disconnect failed: ${err.message}`, 'error');
-      disconnectBtn.disabled = false;
-      return;
-    }
-    updateWalletButton();
-  });
-}
-
-function removeDisconnectButton() {
-  document.getElementById('wallet-disconnect-btn')?.remove();
 }
 
 function showPreviewBanner() {
@@ -117,7 +85,23 @@ async function handleWalletButtonClick() {
   const btn = document.getElementById('wallet-connect-btn');
   if (!btn) return;
 
-  if (walletState.connected) return; // disconnect handled by #wallet-disconnect-btn
+  if (walletState.connected) {
+    btn.textContent = 'Disconnecting…';
+    btn.disabled = true;
+    try {
+      await disconnectWallet();
+      walletState.connected = false;
+      walletState.address = null;
+      walletState.walletName = null;
+      clearStatusMessage();
+    } catch (err) {
+      showStatusMessage(`Disconnect failed: ${err.message}`, 'error');
+    } finally {
+      btn.disabled = false;
+      updateWalletButton();
+    }
+    return;
+  }
 
   btn.textContent = 'Connecting…';
   btn.disabled = true;

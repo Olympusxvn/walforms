@@ -123,10 +123,15 @@ export async function uploadBlob(data, { epochs = 5, sendObjectTo = null } = {})
       const json = await res.json();
       const blobId =
         json.newlyCreated?.blobObject?.blobId ||
-        json.alreadyCertified?.blobId;
+        json.newlyCreated?.blobObject?.blob_id ||
+        json.newlyCreated?.blob_id ||
+        json.alreadyCertified?.blobId ||
+        json.alreadyCertified?.blob_id ||
+        json.blobId ||
+        json.blob_id;
 
       if (!blobId) {
-        errors.push(`${base}: no blobId in response`);
+        errors.push(`${base}: no blobId in response (${JSON.stringify(json).slice(0, 180)})`);
         continue;
       }
 
