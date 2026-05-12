@@ -140,6 +140,16 @@ Walgo publishes all static assets to Walrus and returns a permanent URL.
 - **Anonymous submissions:** Anonymous respondents get an ephemeral keypair generated in the browser. If they clear their browser data, the keypair is lost. Recovery is not possible.
 - **File upload size:** Screenshots and video attachments are limited to ~10 MiB by the public publishers. Larger files require a private publisher endpoint.
 
+## Mainnet publisher HTTP reliability (502 / integration)
+
+WalForms calls **`PUT /v1/blobs`** on Mainnet publisher endpoints. Walrus docs correctly note [no formal SLA on public infrastructure](https://docs.wal.app/docs/system-overview/system-constraints#public-infrastructure-availability) and that [Mainnet publishers differ from Testnet](https://docs.wal.app/docs/system-overview/public-aggregators-and-publishers). Even so, **opaque 502** responses and unclear integration paths cost every integrator time.
+
+We wrote a **constructive change request** for publisher operators and ecosystem documentation — observability, HTTP semantics, structured errors, `operators.json` parity, and success criteria:
+
+**→ [change_request.md](change_request.md)**
+
+User-facing incident summary and mitigations: **[walrus-mainnet-publisher-502-report.html](walrus-mainnet-publisher-502-report.html)**.
+
 ## Honest feedback for the Walrus Foundation
 
 *(Olympus: fill in your real answers below before submitting. Questions are pre-filled in `feedback.html` too.)*
