@@ -37,6 +37,8 @@
       </a>
 
       <div class="nav-links">
+        <a href="myfeedback.html" class="nav-link">Sessions feedback</a>
+        <a href="walrus-mainnet-publisher-502-report.html" class="nav-link" title="Mainnet Walrus HTTP publisher — 502 on PUT /v1/blobs">Publisher 502 report</a>
         <a href="builder.html" class="nav-link">Build a form</a>
         <a href="verify.html" class="nav-link">Verify</a>
         <!-- Wallet connect — wired by app.js -->
@@ -76,6 +78,13 @@
             Verify a form
           </a>
         </div>
+
+        <p style="margin-top: var(--sp-6); font-size: var(--text-sm); color: rgba(255,255,255,.55); max-width: 520px;">
+          <a href="myfeedback.html" style="color: rgba(255,255,255,.85); text-decoration: underline; text-underline-offset: 3px;">Sessions feedback</a>
+          (shareable <code style="font-size: 11px; opacity: .9">myfeedback.html?id=…</code>)
+          &middot;
+          <a href="walrus-mainnet-publisher-502-report.html" style="color: rgba(255,255,255,.85); text-decoration: underline; text-underline-offset: 3px;">Mainnet publisher HTTP — 502 notes</a>
+        </p>
 
         <!-- app.js populates this with latest SubmissionRecorded events -->
         <div id="live-ticker" class="live-ticker" role="status" aria-live="polite">
@@ -269,12 +278,14 @@
             Walrus — we cannot edit it after submission.
           </p>
 
-          <a href="feedback.html" class="btn btn-primary btn-lg">
+          <a href="myfeedback.html" class="btn btn-primary btn-lg">
             Submit feedback
           </a>
 
           <p class="cta-subtext">
-            This form is itself a WalForms form — every answer goes to&nbsp;Walrus.
+            Open the shareable entrypoint (<code style="font-family: var(--font-mono); font-size: 12px">myfeedback.html</code>), then enter your published WalForm ID if prompted.
+            Mainnet HTTP publishers may return 502 — see
+            <a href="walrus-mainnet-publisher-502-report.html">publisher issue report &amp; mitigations</a>.
           </p>
 
         </div>
@@ -294,7 +305,9 @@
       </p>
 
       <nav class="footer-links" aria-label="Footer links">
-        <a href="#" aria-label="WalForms on GitHub">GitHub</a>
+        <a href="https://github.com/Olympusxvn/walforms" target="_blank" rel="noopener" aria-label="WalForms on GitHub">GitHub</a>
+        <a href="myfeedback.html">Sessions feedback</a>
+        <a href="walrus-mainnet-publisher-502-report.html">Publisher 502 report</a>
         <a href="verify.html">Verify</a>
         <a href="builder.html">Build</a>
       </nav>

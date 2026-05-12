@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mainnet Walrus HTTP publisher — 502 on PUT /v1/blobs · WalForms</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="description" content="Issue summary and recommended handling for HTTP 502 responses from Mainnet Walrus publishers when uploading blobs via PUT /v1/blobs.">
+  <meta name="theme-color" content="#0F1115">
+  <style>
+    .report-wrap { max-width: 760px; margin: 0 auto; }
+    .report-lede { font-size: var(--text-md); color: var(--color-muted); line-height: 1.65; margin-bottom: var(--sp-6); }
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+      margin: var(--sp-4) 0 var(--sp-6);
+    }
+    .report-table th,
+    .report-table td {
+      border: 1px solid var(--color-border);
+      padding: var(--sp-3) var(--sp-4);
+      text-align: left;
+      vertical-align: top;
+    }
+    .report-table th { background: var(--color-surface); font-weight: 600; }
+    .report-section { margin-top: var(--sp-8); }
+    .report-section h2 { margin-bottom: var(--sp-4); font-size: var(--text-lg); }
+    .report-list { padding-left: 1.25rem; margin: var(--sp-3) 0; line-height: 1.65; color: var(--color-muted); }
+    .report-list li { margin-bottom: var(--sp-3); }
+    .report-list strong { color: var(--color-text); }
+    .report-note {
+      margin-top: var(--sp-6);
+      padding: var(--sp-5);
+      border-radius: var(--radius-md);
+      background: rgba(142,99,255,.07);
+      border: 1.5px solid rgba(142,99,255,.22);
+      font-size: var(--text-sm);
+      line-height: 1.55;
+    }
+    .report-note code { font-family: var(--font-mono); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <nav class="nav" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo" aria-label="WalForms home">
+        <span class="nav-logo-dot" aria-hidden="true"></span>
+        WalForms
+      </a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="myfeedback.html" class="nav-link">Sessions feedback</a>
+        <a href="builder.html" class="nav-link">Builder</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="section">
+    <div class="container report-wrap">
+      <p class="eyebrow">Operations · Walrus Mainnet</p>
+      <h1 style="margin-top: var(--sp-3); line-height: 1.2;">
+        Mainnet Walrus HTTP publisher — <span style="white-space: nowrap">502 Bad Gateway</span> on <code style="font-family:var(--font-mono);font-size:.85em">PUT /v1/blobs</code>
+      </h1>
+
+      <p class="report-lede">
+        Copy the sections below into an email, GitHub issue, or Discord message to publisher operators or Mysten support.
+        Plain Markdown source: <a href="docs/walrus-mainnet-publisher-502-report.md">docs/walrus-mainnet-publisher-502-report.md</a>.
+      </p>
+
+      <div class="card" style="padding: var(--sp-8);">
+        <p style="margin: 0 0 var(--sp-4); font-weight: 600;">Subject: Mainnet Walrus HTTP publisher — 502 Bad Gateway on PUT /v1/blobs</p>
+
+        <p style="color: var(--color-muted); line-height: 1.65;">
+          Hello,<br><br>
+          We operate <strong>WalForms</strong> (<a href="https://github.com/Olympusxvn/walforms" target="_blank" rel="noopener">repository</a>)
+          — a Walrus-native form platform on <strong>Sui Mainnet</strong>. End users upload JSON definitions and submissions via the Walrus publisher HTTP API:
+          <code style="font-family:var(--font-mono);font-size:12px">PUT {publisher}/v1/blobs?epochs=5</code> with the raw body (file bytes).
+        </p>
+
+        <div class="report-section">
+          <h2>Observed behavior</h2>
+          <p style="color: var(--color-muted); font-size: var(--text-sm); margin-bottom: var(--sp-3);">
+            We consistently receive <strong>HTTP 502 Bad Gateway</strong> when calling community Mainnet publisher endpoints from browsers (<code style="font-family:var(--font-mono);font-size:12px">fetch</code>)
+            and from Windows terminals (<strong><code style="font-family:var(--font-mono);font-size:12px">curl.exe</code></strong>, not PowerShell’s <code style="font-family:var(--font-mono);font-size:12px">curl</code> alias):
+          </p>
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Endpoint</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code style="font-family:var(--font-mono);font-size:11px;word-break:break-all">https://walrus-mainnet-publisher-1.staketab.org/v1/blobs?…</code></td>
+                <td><strong>502</strong> (short body: “error code: 502”)</td>
+              </tr>
+              <tr>
+                <td><code style="font-family:var(--font-mono);font-size:11px;word-break:break-all">https://publisher.walrus-mainnet.h2o-nodes.com/v1/blobs?…</code></td>
+                <td><strong>502</strong> (nginx HTML “502 Bad Gateway”)</td>
+              </tr>
+            </tbody>
+          </table>
+          <p style="color: var(--color-muted); font-size: var(--text-sm); line-height: 1.6;">
+            For comparison, the same <strong>PUT</strong> pattern against a <strong>Testnet</strong> publisher (e.g.
+            <code style="font-family:var(--font-mono);font-size:11px">https://publisher.walrus-testnet.walrus.space/...</code>) returns <strong>200</strong> and a valid blob ID,
+            so our client request shape and network path appear sound.
+          </p>
+        </div>
+
+        <div class="report-section">
+          <h2>Context from Walrus docs</h2>
+          <ul class="report-list">
+            <li>
+              <a href="https://docs.wal.app/docs/system-overview/public-aggregators-and-publishers" target="_blank" rel="noopener">Public aggregators and publishers</a>
+              — on Mainnet there are <strong>no public publishers without authentication</strong>, as they consume <strong>SUI</strong> and <strong>WAL</strong>.
+            </li>
+            <li>
+              <a href="https://docs.wal.app/docs/system-overview/system-constraints#public-infrastructure-availability" target="_blank" rel="noopener">System constraints — public infrastructure</a>
+              — public publishers have <strong>no formal availability guarantees</strong>.
+            </li>
+          </ul>
+        </div>
+
+        <div class="report-section">
+          <h2>Questions for operators</h2>
+          <ol class="report-list" style="list-style: decimal;">
+            <li>Are these Mainnet HTTP publisher URLs expected to accept <strong>unauthenticated</strong> PUT uploads today, or must production use an <a href="https://docs.wal.app/docs/operator-guide/publishers/auth-publisher" target="_blank" rel="noopener">authenticated publisher</a> / CLI / self-hosted publisher only?</li>
+            <li>Do the <strong>502</strong> responses indicate a known outage, misconfiguration, or upstream issue — and is there a status channel or ETA?</li>
+            <li>Is there a <strong>canonical list</strong> of Mainnet publisher base URLs for app integrations?
+              (<a href="https://docs.wal.app/operators.json" target="_blank" rel="noopener">operators.json</a> documents aggregators extensively; publishers appear primarily under <strong>testnet</strong>.)</li>
+          </ol>
+        </div>
+
+        <div class="report-section">
+          <h2>What would help</h2>
+          <ul class="report-list">
+            <li>Confirmation of the <strong>supported integration path</strong> for Mainnet blob uploads for third-party apps (HTTP vs CLI vs authenticated publisher).</li>
+            <li>If <strong>502</strong> is unintended: tracking ID, timeline, or workaround until the service is healthy.</li>
+          </ul>
+          <p style="color: var(--color-muted); font-size: var(--text-sm); margin-top: var(--sp-6);">
+            Thank you for your time.<br>
+            — <em>[Your name / team]</em><br>
+            <strong>Project:</strong> WalForms — Walrus Sessions
+          </p>
+        </div>
+
+        <div class="report-section">
+          <h2>Recommended handling <span style="font-weight:500;color:var(--color-muted);font-size:var(--text-sm)">(Đề xuất xử lý)</span></h2>
+          <p style="color: var(--color-muted); font-size: var(--text-sm); margin-bottom: var(--sp-4); line-height: 1.6;">
+            Practical mitigations for WalForms users, integrators, and demo recordings while Mainnet HTTP publishers are flaky or return sustained 502:
+          </p>
+          <ol class="report-list" style="list-style: decimal;">
+            <li>
+              <strong>In-app retries.</strong> WalForms <code style="font-family:var(--font-mono);font-size:12px">uploadBlob</code> retries each publisher on HTTP
+              <strong>502 / 503 / 504</strong> with short backoff before trying the next configured base URL.
+              This only helps <strong>transient</strong> gateway errors.
+            </li>
+            <li>
+              <strong>Manual blob upload.</strong> If the builder shows the curl fallback, use <strong><code style="font-family:var(--font-mono);font-size:12px">curl.exe</code></strong> on Windows
+              (never bare <code style="font-family:var(--font-mono);font-size:12px">curl</code>), then paste the returned blob ID into the UI.
+            </li>
+            <li>
+              <strong>PowerShell without curl.</strong> Equivalent:
+              <code style="font-family:var(--font-mono);font-size:11px;display:block;margin-top:var(--sp-2);white-space:pre-wrap">Invoke-WebRequest -Method Put -Uri "https://&lt;PUBLISHER&gt;/v1/blobs?epochs=5" -InFile ".\form-definition.json"</code>
+            </li>
+            <li>
+              <strong>Production direction (per Walrus docs).</strong> For reliability on Mainnet: run your own
+              <a href="https://docs.wal.app/docs/operator-guide/publishers/operating-publisher" target="_blank" rel="noopener">publisher</a>,
+              use an <a href="https://docs.wal.app/docs/operator-guide/publishers/auth-publisher" target="_blank" rel="noopener">authenticated publisher</a>,
+              or integrate the <a href="https://docs.wal.app/docs/walrus-client/storing-blobs" target="_blank" rel="noopener">Walrus CLI</a> with a funded wallet.
+            </li>
+            <li>
+              <strong>Demos &amp; judges.</strong> To prove the product surface when Mainnet HTTP is down, record against
+              <strong>Testnet</strong> (e.g. Mysten testnet publisher). Testnet blob IDs are <strong>not</strong> interchangeable with Mainnet on-chain transactions — label footage clearly as testnet vs mainnet.
+            </li>
+            <li>
+              <strong>Operator outreach.</strong> Send the issue summary above to the publisher hosts you rely on; reference this page URL for context.
+            </li>
+          </ol>
+        </div>
+
+        <div class="report-note">
+          <strong>Shareable feedback entry</strong> for Sessions:<br>
+          Use <a href="myfeedback.html">myfeedback.html</a> (<code style="font-family:var(--font-mono)">?id=&lt;WalForm object ID&gt;</code> after publishing from the builder).
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer" aria-label="Site footer">
+    <div class="footer-inner">
+      <p class="footer-copy">WalForms · <a href="index.html">Home</a></p>
+      <nav class="footer-links" aria-label="Footer links">
+        <a href="myfeedback.html">Sessions feedback</a>
+        <a href="builder.html">Build</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>
