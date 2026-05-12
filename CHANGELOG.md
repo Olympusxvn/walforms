@@ -165,7 +165,38 @@ Chronological arc of the Mainnet upload workstream (browser + CLI), for reviewer
    builder → wallet → Sui path via fallbacks; production-grade Mainnet uploads still point toward
    **authenticated publishers**, **CLI**, or **self-hosted** publisher per official docs.
 
+### Stance & Mainnet publisher policy (ecosystem feedback, **stance unchanged**)
+
+**What we were told (operator / community):** On Mainnet, **publisher** endpoints are not
+interchangeable with the **unauthenticated** Testnet public-publisher pattern — **authentication is
+required** for Mainnet publisher use; you cannot treat them like Testnet publishers for ad-hoc
+`PUT` from a static site alone. This **matches** the Walrus documentation already cited in
+`change_request.md` and `walrus-mainnet-publisher-502-report.html` (Mainnet has no
+unauthenticated public publishers in the same sense as Testnet; public infra has no formal SLA).
+
+**Lập trường dự án (giữ nguyên):**
+
+- **Trung thực** về giới hạn: retries, multi-endpoint try, `curl` / `curl.exe` + **manual blob ID**,
+  và tài liệu gửi operator vẫn là **đúng hướng** — đó là mitigations thực tế khi tích hợp công khai
+  gặp 502 / CORS / policy, không phải “lỗi sản phẩm vì hạ tầng”.
+- **Không** xoay sang marketing che giấu: xác nhận **auth bắt buộc** trên Mainnet **củng cố** thông
+  điệp change request (HTTP semantics rõ ràng, tài liệu integration, listing nhất quán) và đoạn
+  README/hackathon về việc **localhost-only publisher** không thay được ingress có danh tính /
+  có hostname public cho người dùng cuối.
+- **Hướng kiến trúc lâu dài** (ghi nhận, không đổi triết lý): blob upload Mainnet bền vững cần
+  **authenticated publisher**, **Walrus CLI**, hoặc **backend proxy** giữ credential — không giữ
+  kỳ vọng “chỉ đổi URL trong client là đủ” như Testnet.
+
+Aggregators (đọc blob) và publishers (ghi blob) là hai vai trò khác nhau; chọn endpoint/latency
+cho aggregators không giải quyết một mình bài toán **authenticated upload** trên Mainnet.
+
 ### Known Limitations
+
+- **Mainnet publisher authentication** — Community Mainnet **publisher** HTTP APIs expect
+  **authenticated** use; they are **not** a drop-in replacement for unauthenticated Testnet
+  `PUT` flows in the browser. The shipped client retry/fallback/manual-blob-ID path mitigates
+  failures but does not replace a proper **auth**, **CLI**, or **proxy upload** design for
+  production-scale Mainnet blob writes. See **`change_request.md`** and ecosystem docs.
 
 - **Anonymous on-chain submission requires gas** — the ephemeral Ed25519 keypair generated
   per session has no SUI balance. Without a gas sponsorship flow the RPC will reject the TX
