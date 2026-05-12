@@ -351,12 +351,18 @@ function showCurlFallbackInline(json) {
   const div = document.createElement('div');
   div.style.cssText = 'margin-top:var(--sp-5);padding:var(--sp-5);background:#F8F6FF;border-radius:var(--radius-md);border:1.5px solid rgba(142,99,255,.25)';
   const cmd = curlFallback(5, 'submission.json');
+  const cmdWin = cmd.replace(/^curl\b/, 'curl.exe');
   div.innerHTML = `
     <strong style="font-size:var(--text-sm)">All Walrus publishers failed</strong>
     <p style="font-size:var(--text-sm);color:var(--color-muted);margin:var(--sp-2) 0">
       Save your submission JSON and upload manually:
     </p>
+    <p style="font-size:11px;color:var(--color-muted);margin:0 0 var(--sp-2)">
+      <strong>Windows PowerShell:</strong> use <code style="font-family:var(--font-mono)">curl.exe</code> instead of <code style="font-family:var(--font-mono)">curl</code>.
+    </p>
     <pre style="font-size:12px;white-space:pre-wrap;word-break:break-all">${cmd}</pre>
+    <p style="font-size:11px;color:var(--color-muted);margin:var(--sp-2) 0">PowerShell-friendly:</p>
+    <pre style="font-size:12px;white-space:pre-wrap;word-break:break-all">${cmdWin}</pre>
     <button id="dl-submission-json" class="btn btn-ghost" style="margin-top:var(--sp-3)" type="button">Download submission.json</button>
   `;
   submitProgressEl.append(div);

@@ -343,6 +343,7 @@ function clearProgress() { if (progressEl) progressEl.innerHTML = ''; }
 function showCurlFallback(blobBytes) {
   if (!progressEl) return;
   const cmd = curlFallback(5);
+  const cmdWin = cmd.replace(/^curl\b/, 'curl.exe');
   const div = document.createElement('div');
   div.className = 'curl-fallback';
   div.innerHTML = `
@@ -350,7 +351,12 @@ function showCurlFallback(blobBytes) {
     <p style="font-size:var(--text-sm);color:var(--color-muted);margin:var(--sp-2) 0 0">
       Run this command from your terminal to upload the form definition manually:
     </p>
+    <p style="font-size:11px;color:var(--color-muted);margin:var(--sp-2) 0 0">
+      <strong>Windows PowerShell:</strong> use <code style="font-family:var(--font-mono)">curl.exe</code> (not <code style="font-family:var(--font-mono)">curl</code>) — PowerShell maps <code>curl</code> to <code>Invoke-WebRequest</code>, which does not support <code>-X</code>.
+    </p>
     <pre>${cmd.replace('YOUR_FILE', 'form-definition.json')}</pre>
+    <p style="font-size:11px;color:var(--color-muted);margin:var(--sp-2) 0 0">PowerShell-friendly (same request):</p>
+    <pre>${cmdWin.replace('YOUR_FILE', 'form-definition.json')}</pre>
     <p style="font-size:var(--text-sm);color:var(--color-muted);margin:var(--sp-4) 0 var(--sp-2)">
       Already uploaded manually? Paste the Blob ID here:
     </p>
