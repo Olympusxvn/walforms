@@ -29,6 +29,13 @@
 
 #### Critical
 
+- **walrus.js — Walrus publisher / aggregator hostnames**
+  Dropped `publisher.walrus.space` and `aggregator.walrus.space` from the fallback chains; they are
+  not listed in current Walrus operator docs and commonly fail DNS (`curl: (6) Could not resolve
+  host`). The app now tries Mysten’s documented mainnet hosts first
+  (`publisher.walrus-mainnet.walrus.space`, `aggregator.walrus-mainnet.walrus.space`) plus Staketab
+  mirrors.
+
 - **walrus.js — browser upload compatibility improved for Netlify/CORS scenarios**
   Removed explicit `Content-Type` on browser `PUT` upload to reduce CORS preflight failures on
   public publisher endpoints. Also expanded blob ID parsing to support multiple response shapes

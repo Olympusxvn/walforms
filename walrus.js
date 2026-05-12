@@ -1,14 +1,14 @@
 // walrus.js — Walrus mainnet HTTP client with publisher/aggregator fallback chain.
 // All endpoints below are MAINNET. No testnet.
 
+// Mysten mainnet publisher first (see https://docs.wal.app/ — `publisher.walrus.space` is not
+// a documented host and often fails DNS resolution; prefer `*.walrus-mainnet.walrus.space`).
 const PUBLISHERS = [
-  'https://publisher.walrus.space',
   'https://publisher.walrus-mainnet.walrus.space',
   'https://walrus-mainnet-publisher-1.staketab.org',
 ];
 
 const AGGREGATORS = [
-  'https://aggregator.walrus.space',
   'https://aggregator.walrus-mainnet.walrus.space',
   'https://wal-aggregator-mainnet.staketab.org',
 ];
