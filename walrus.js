@@ -101,6 +101,13 @@ async function getQueueStore(mode = 'readonly') {
   return tx.objectStore(STORE_NAME);
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Transient gateway / upstream failures — short retry before trying next publisher. */
+const RETRYABLE_UPLOAD_STATUS = new Set([502, 503, 504]);
+
 export async function uploadBlob(data, { epochs = 5, sendObjectTo = null } = {}) {
   const body = normalizeBlobData(data);
   const errors = [];
@@ -111,10 +118,17 @@ export async function uploadBlob(data, { epochs = 5, sendObjectTo = null } = {})
     if (sendObjectTo) url.searchParams.set('send_object_to', sendObjectTo);
 
     try {
-      const res = await fetch(url, {
-        method: 'PUT',
-        body,
-      });
+      let res = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        res = await fetch(url, {
+          method: 'PUT',
+          body,
+        });
+        if (res.ok) break;
+        const retryable = RETRYABLE_UPLOAD_STATUS.has(res.status);
+        if (!retryable || attempt === 2) break;
+        await sleep(350 * 2 ** attempt);
+      }
 
       if (!res.ok) {
         errors.push(`${base}: HTTP ${res.status}`);

@@ -88,6 +88,12 @@
 
 #### Improved
 
+- **walrus.js — retry transient gateway errors on blob upload**
+  `uploadBlob` retries each publisher up to 3 times with backoff when the HTTP response is
+  **502 / 503 / 504**, before falling through to the next publisher. This only helps **short**
+  outages; sustained **502** from Mainnet publishers still requires operator fixes, authenticated
+  publishers, or self-hosted infrastructure per Walrus docs.
+
 - **sui.js — `isSealed` now checks both `sealed_at_ms` and `final_manifest_root`**
   The frontend sealed-state check now mirrors the on-chain guard in `walforms.move`, which
   tests `option::is_none(&form.final_manifest_root)`. Previously only `sealed_at_ms` was
