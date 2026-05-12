@@ -52,6 +52,14 @@
   Removed to avoid drift; all operator/issue content lives in
   **`walrus-mainnet-publisher-502-report.html`** only.
 
+### Documentation
+
+- **change_request.md — Mainnet publisher HTTP reliability**
+  Constructive technical proposal for publisher operators and ecosystem docs: health/readiness,
+  HTTP semantics (503 vs 502, Retry-After), structured errors, monitoring, `operators.json` parity,
+  integration decision tree — with cited Walrus docs and measurable success criteria. Linked from
+  **README.md** next to **walrus-mainnet-publisher-502-report.html**.
+
 ### Fixed
 
 #### Critical
