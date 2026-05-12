@@ -25,6 +25,33 @@
   Added Chromium smoke tests for three key paths: creator access, admin-cap access, and blocked
   access for non-admin/non-creator wallets.
 
+- **myfeedback.html — shareable respondent entry for Walrus Sessions**
+  Landing page that redirects to `form.html?id=…` when a WalForm object ID is present (`?id=` /
+  `?form=` or inline preset), or prompts for an ID after publishing from the builder.
+
+- **walrus-mainnet-publisher-502-report.html — canonical Mainnet publisher incident page**
+  Single HTML reference covering: HTTP **502** / DNS **(6)** / PowerShell **`curl` vs `curl.exe`**,
+  copy-paste letter to operators, ranked mitigations (production docs, **local `walrus publisher`**
+  + `curl.exe`, **testnet** sanity check with network caveat), what WalForms implements (retries,
+  manual blob ID), Sessions/hackathon framing, and a README blurb. Supersedes scattered notes.
+
+- **index.html — Sessions navigation**
+  Linked **Sessions feedback** (`myfeedback.html`) and **Publisher 502 report**
+  (`walrus-mainnet-publisher-502-report.html`) from the nav, hero, “Try it live” CTA, and footer;
+  fixed footer GitHub href to the public repository.
+
+### Changed
+
+- **builder.js / form.js — alternate publisher in curl fallback UI**
+  When multiple publisher base URLs are configured, the Walrus failure panel shows a primary and
+  **alternate** `curl` / `curl.exe` command (helps when the first host fails DNS).
+
+### Removed
+
+- **docs/walrus-mainnet-publisher-502-report.md**
+  Removed to avoid drift; all operator/issue content lives in
+  **`walrus-mainnet-publisher-502-report.html`** only.
+
 ### Fixed
 
 #### Critical
@@ -106,6 +133,27 @@
 - **sui.js — `encodeString` and `toBytes` are now named exports**
   These were previously internal-only; exporting them allows other modules to reuse them
   without copy-pasting.
+
+### Process summary — Walrus Mainnet HTTP publishers (Sessions track)
+
+Chronological arc of the Mainnet upload workstream (browser + CLI), for reviewers and future us:
+
+1. **PowerShell confusion** — Users hit `Invoke-WebRequest` when typing `curl -X …`; builder and
+   form fallbacks now show **`curl.exe`** alongside GNU `curl`, with a short explanation.
+2. **DNS** — Legacy hostnames (`publisher.walrus.space`, later `publisher.walrus-mainnet.walrus.space`)
+   failed resolution (**NXDOMAIN**); publisher lists were pointed at operator-style bases that resolve
+   in public DNS (e.g. Staketab, H2O).
+3. **502 Bad Gateway** — Community Mainnet publisher endpoints returned sustained **502** from both
+   `fetch` and **`curl.exe`**; consistent with Walrus docs (no SLA on public infra; Mainnet has no
+   unauthenticated public publishers). Response: **retry 502/503/504** in `uploadBlob`, document the
+   issue for operators, and keep **manual blob ID** continuation so creators can finish `create_form`
+   when HTTP upload fails.
+4. **Site + submission story** — Added **myfeedback.html**, linked everything from **index.html**,
+   and consolidated reporting into **walrus-mainnet-publisher-502-report.html** (local publisher +
+   testnet examples, README blurb, Sessions framing when HTTP stays unreliable).
+5. **Outcome** — The app remains honest about infrastructure limits while preserving a complete
+   builder → wallet → Sui path via fallbacks; production-grade Mainnet uploads still point toward
+   **authenticated publishers**, **CLI**, or **self-hosted** publisher per official docs.
 
 ### Known Limitations
 
