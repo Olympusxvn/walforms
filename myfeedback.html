@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WalForms — Sessions feedback</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="description" content="Shareable WalForms entry point for Walrus Sessions — structured feedback stored on Walrus, anchored on Sui.">
+  <meta property="og:title" content="WalForms — Sessions feedback">
+  <meta property="og:description" content="Submit feedback through WalForms: Walrus-backed submissions with on-chain receipts.">
+  <meta name="theme-color" content="#0F1115">
+  <!-- If ?id= or PRESET below is set, we redirect before paint -->
+  <script>
+(function () {
+  var PRESET_FORM_OBJECT_ID = '';
+  /* After you publish a form from builder.html on mainnet, paste the WalForm object ID here
+     so judges can open myfeedback.html without query params. Leave '' to show the landing UI. */
+  try {
+    var p = new URLSearchParams(window.location.search);
+    var id = p.get('id') || p.get('form') || PRESET_FORM_OBJECT_ID || '';
+    id = String(id).trim();
+    if (id) {
+      window.location.replace('form.html?id=' + encodeURIComponent(id));
+    }
+  } catch (e) { /* stay on page */ }
+})();
+  </script>
+</head>
+<body>
+  <nav class="nav" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo" aria-label="WalForms home">
+        <span class="nav-logo-dot" aria-hidden="true"></span>
+        WalForms
+      </a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="builder.html" class="nav-link">Builder</a>
+        <a href="verify.html" class="nav-link">Verify</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="section">
+    <div class="container">
+      <div class="card" style="padding: var(--sp-8); max-width: 640px; margin-inline: auto;">
+        <p class="eyebrow">Walrus Sessions · Round 2</p>
+        <h1 style="margin-top: var(--sp-3);">Feedback for this demo</h1>
+        <p class="text-muted" style="margin-top: var(--sp-4); line-height: 1.6;">
+          This page is a <strong>shareable entry point</strong> for your WalForms submission flow.
+          Responses load the standard respondent UI (<code style="font-family: var(--font-mono); font-size: 0.9em;">form.html</code>)
+          so submissions stay Walrus-backed and anchored on Sui like the rest of the product.
+        </p>
+
+        <div style="margin-top: var(--sp-6); padding: var(--sp-5); border-radius: var(--radius-md); background: rgba(142,99,255,.07); border: 1.5px solid rgba(142,99,255,.22); font-size: var(--text-sm); line-height: 1.55;">
+          <strong style="display: block; margin-bottom: var(--sp-2);">Using your published form ID</strong>
+          <span style="color: var(--color-muted);">
+            After <a href="builder.html">builder</a> successfully publishes a form, copy the <strong>WalForm object ID</strong>.
+            Share this page as:
+          </span>
+          <pre style="margin: var(--sp-3) 0 0; font-size: 12px; white-space: pre-wrap; word-break: break-all; font-family: var(--font-mono);">https://YOUR_SITE/myfeedback.html?id=0x…</pre>
+          <span style="color: var(--color-muted); font-size: 12px;">
+            Or paste the ID into the box below. (Mainnet Walrus HTTP publishers are often unreliable per
+            <a href="https://docs.wal.app/docs/system-overview/public-aggregators-and-publishers" target="_blank" rel="noopener">Walrus docs</a>;
+            if publish fails, retry later, use CLI/auth publisher, or record your demo against testnet — same product surface.)
+          </span>
+        </div>
+
+        <form id="open-form" style="margin-top: var(--sp-6); display: grid; gap: var(--sp-4);">
+          <label>
+            <span style="display:block; font-size: var(--text-sm); font-weight: 600; margin-bottom: var(--sp-2);">WalForm object ID</span>
+            <input
+              id="form-object-id"
+              class="field-input"
+              type="text"
+              placeholder="0x…"
+              autocomplete="off"
+              spellcheck="false"
+              style="font-family: var(--font-mono); font-size: var(--text-sm);"
+            />
+          </label>
+          <div style="display: flex; gap: var(--sp-3); flex-wrap: wrap;">
+            <button type="submit" class="btn btn-primary">Open feedback form</button>
+            <a href="builder.html" class="btn btn-ghost">Create a form</a>
+          </div>
+        </form>
+
+        <p class="text-muted" style="margin-top: var(--sp-6); font-size: 12px; line-height: 1.5;">
+          Built for the hackathon brief: structured feedback (text, media, URLs, ratings, etc.), shareable links,
+          Walrus storage for payloads, and an admin dashboard — see <a href="index.html">home</a> for the full flow.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+(function () {
+  var form = document.getElementById('open-form');
+  var input = document.getElementById('form-object-id');
+  if (!form || !input) return;
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var id = (input.value || '').trim();
+    if (!id) {
+      input.focus();
+      return;
+    }
+    window.location.href = 'form.html?id=' + encodeURIComponent(id);
+  });
+})();
+  </script>
+</body>
+</html>
