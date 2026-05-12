@@ -30,11 +30,12 @@
 #### Critical
 
 - **walrus.js — Walrus publisher / aggregator hostnames**
-  Dropped `publisher.walrus.space` and `aggregator.walrus.space` from the fallback chains; they are
-  not listed in current Walrus operator docs and commonly fail DNS (`curl: (6) Could not resolve
-  host`). The app now tries Mysten’s documented mainnet hosts first
-  (`publisher.walrus-mainnet.walrus.space`, `aggregator.walrus-mainnet.walrus.space`) plus Staketab
-  mirrors.
+  Dropped legacy `publisher.walrus.space` / `aggregator.walrus.space`. The Mysten-style publisher
+  hostname `publisher.walrus-mainnet.walrus.space` **does not exist in public DNS** (NXDOMAIN), so
+  `curl`/`curl.exe` cannot resolve it — use operator-listed HTTP publishers instead. Upload fallbacks
+  now target `walrus-mainnet-publisher-1.staketab.org` first, then
+  `publisher.walrus-mainnet.h2o-nodes.com`. Aggregator reads still use
+  `aggregator.walrus-mainnet.walrus.space` (resolves) plus Staketab.
 
 - **walrus.js — browser upload compatibility improved for Netlify/CORS scenarios**
   Removed explicit `Content-Type` on browser `PUT` upload to reduce CORS preflight failures on

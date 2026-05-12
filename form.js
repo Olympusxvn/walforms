@@ -350,8 +350,20 @@ function showCurlFallbackInline(json) {
   if (!submitProgressEl) return;
   const div = document.createElement('div');
   div.style.cssText = 'margin-top:var(--sp-5);padding:var(--sp-5);background:#F8F6FF;border-radius:var(--radius-md);border:1.5px solid rgba(142,99,255,.25)';
-  const cmd = curlFallback(5, 'submission.json');
+  const file = 'submission.json';
+  const cmd = curlFallback(5, file, 0);
+  const cmdAlt = curlFallback(5, file, 1);
   const cmdWin = cmd.replace(/^curl\b/, 'curl.exe');
+  const cmdWinAlt = cmdAlt ? cmdAlt.replace(/^curl\b/, 'curl.exe') : '';
+  const altBlock = cmdAlt
+    ? `
+    <p style="font-size:11px;color:var(--color-muted);margin:var(--sp-3) 0 var(--sp-2)">
+      <strong>Alternate publisher</strong> (if DNS fails on the first URL):
+    </p>
+    <pre style="font-size:12px;white-space:pre-wrap;word-break:break-all">${cmdAlt}</pre>
+    <p style="font-size:11px;color:var(--color-muted);margin:var(--sp-2) 0">PowerShell-friendly:</p>
+    <pre style="font-size:12px;white-space:pre-wrap;word-break:break-all">${cmdWinAlt}</pre>`
+    : '';
   div.innerHTML = `
     <strong style="font-size:var(--text-sm)">All Walrus publishers failed</strong>
     <p style="font-size:var(--text-sm);color:var(--color-muted);margin:var(--sp-2) 0">
@@ -363,6 +375,7 @@ function showCurlFallbackInline(json) {
     <pre style="font-size:12px;white-space:pre-wrap;word-break:break-all">${cmd}</pre>
     <p style="font-size:11px;color:var(--color-muted);margin:var(--sp-2) 0">PowerShell-friendly:</p>
     <pre style="font-size:12px;white-space:pre-wrap;word-break:break-all">${cmdWin}</pre>
+    ${altBlock}
     <button id="dl-submission-json" class="btn btn-ghost" style="margin-top:var(--sp-3)" type="button">Download submission.json</button>
   `;
   submitProgressEl.append(div);

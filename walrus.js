@@ -1,11 +1,12 @@
 // walrus.js — Walrus mainnet HTTP client with publisher/aggregator fallback chain.
 // All endpoints below are MAINNET. No testnet.
 
-// Mysten mainnet publisher first (see https://docs.wal.app/ — `publisher.walrus.space` is not
-// a documented host and often fails DNS resolution; prefer `*.walrus-mainnet.walrus.space`).
+// HTTP PUT publishers (mainnet). Mysten's hostname `publisher.walrus-mainnet.walrus.space` does
+// not resolve in public DNS (NXDOMAIN as of 2026-05); use community publishers from Walrus
+// operator listings instead (e.g. https://docs.wal.app/operators.json).
 const PUBLISHERS = [
-  'https://publisher.walrus-mainnet.walrus.space',
   'https://walrus-mainnet-publisher-1.staketab.org',
+  'https://publisher.walrus-mainnet.h2o-nodes.com',
 ];
 
 const AGGREGATORS = [
@@ -266,7 +267,9 @@ export class WalrusFetchError extends Error {
   }
 }
 
-export function curlFallback(epochs = 5, fileName = 'YOUR_FILE') {
-  const encoded = encodeURI(`${PUBLISHERS[0]}/v1/blobs?epochs=${epochs}`);
+export function curlFallback(epochs = 5, fileName = 'YOUR_FILE', publisherIndex = 0) {
+  const base = PUBLISHERS[publisherIndex];
+  if (!base) return '';
+  const encoded = encodeURI(`${base}/v1/blobs?epochs=${epochs}`);
   return `curl -X PUT "${encoded}" --upload-file ${fileName}`;
 }
