@@ -39,6 +39,16 @@
   command to upload `form-definition.json` manually and then asks you to paste the resulting
   Walrus Blob ID to continue the Sui `create_form` flow.
 
+- **builder.js / form.js — why the manual terminal `PUT` exists (`curl` / `curl.exe`)**
+  The Walrus step must produce a **blob ID** that Sui stores on-chain when creating or updating a
+  form. When the in-page upload fails, the definition (or submission JSON) never reaches the
+  publisher, so there is no blob ID to sign against. Running **`curl` (or `curl.exe` on Windows)
+  from your own terminal** sends the file with a direct HTTP `PUT` to the Walrus publisher API,
+  outside the browser’s origin and CORS rules—so you can still obtain a blob ID and paste it back
+  to finish the wallet flow. On **Windows PowerShell**, `curl` is an alias for
+  `Invoke-WebRequest`, which does not support `-X` / `--upload-file` like real curl; the UI shows
+  a **`curl.exe …`** copy of the same command for that environment.
+
 - **builder.js / sui.js — reliable `formObjectId` extraction after `create_form`**
   Builder now requests `showObjectChanges` in wallet execution options and explicitly picks the
   created `::registry::WalForm` object from transaction changes instead of using the first
