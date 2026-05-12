@@ -75,6 +75,23 @@ This is **necessary** but **not sufficient** for a frictionless Mainnet ecosyste
 
 ---
 
+## Walrus Sessions hackathon brief — why “run your own **local** publisher” is not the whole answer
+
+Walrus documentation rightly recommends **operating a publisher** when you need reliability ([Operate a publisher](https://docs.wal.app/docs/operator-guide/publishers/operating-publisher)). That guidance shines for **teams running infrastructure**. It does **not**, by itself, satisfy the **Sessions hackathon product surface** if interpreted only as **localhost**:
+
+| Constraint | Why it matters for this hackathon |
+|------------|-------------------------------------|
+| **Deploy surface** | WalForms ships as a **static site** (e.g. Netlify / Walrus-hosted HTML). Respondents and judges open a **public URL**. A publisher bound to **`127.0.0.1`** on the builder’s laptop is **not reachable** from those browsers — the browser cannot upload to someone else’s loopback interface (nor should it). |
+| **Brief intent** | The brief asks for **shareable form links**, **community-collected feedback**, and a **demo** others can reproduce from the deployed app — not only a CLI path on one machine. |
+| **Role of local publisher** | Running **`walrus publisher`** locally remains **valuable** for debugging, for **`curl.exe`** uploads on the **same** machine, and for completing the **manual blob ID** continuation flow when HTTP fails. It is a **developer workaround**, not a substitute for **network-accessible** Mainnet blob ingress that every visitor can use without SSH-ing into your PC. |
+| **Self-hosted vs local** | A publisher on a **public hostname** (VPS, tunnel, authenticated endpoint) **can** match production integration — but that is **operator-grade work** and cost (SUI/WAL, uptime). The hackathon still expects the **public app** to have a credible story when relying on **community** endpoints; that is exactly why this change request pushes operators toward clearer behavior on shared Mainnet publishers. |
+
+**Bottom line:** “Only run local publisher” does **not** replace the need for **healthy, documented, or honestly authenticated** Mainnet HTTP publishers — otherwise WalForms cannot fulfill “collect structured feedback” from arbitrary wallets at a shareable link without turning every respondent into a systems administrator.
+
+*(Ghi chú tiếng Việt: Publisher chỉ chạy trên máy dev không thay thế được yêu cầu “ứng dụng công khai + link chia sẻ” của đề thi — chỉ là kênh phụ để debug hoặc upload thủ công.)*
+
+---
+
 ## Success criteria (measurable)
 
 | Metric | Target |

@@ -150,6 +150,8 @@ We wrote a **constructive change request** for publisher operators and ecosystem
 
 User-facing incident summary and mitigations: **[walrus-mainnet-publisher-502-report.html](walrus-mainnet-publisher-502-report.html)**.
 
+**Hackathon note:** Relying solely on a **localhost** publisher does not match the brief’s **shareable deployed app** — browsers cannot `PUT` to `127.0.0.1` on your laptop. See the dedicated subsection in **[change_request.md](change_request.md)** (“Walrus Sessions hackathon brief — why local publisher is not the whole answer”). Local publisher remains useful for **debugging** and **manual blob ID** flows.
+
 ## Honest feedback for the Walrus Foundation
 
 *(Olympus: fill in your real answers below before submitting. Questions are pre-filled in `feedback.html` too.)*

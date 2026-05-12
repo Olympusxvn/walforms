@@ -58,7 +58,9 @@
   Constructive technical proposal for publisher operators and ecosystem docs: health/readiness,
   HTTP semantics (503 vs 502, Retry-After), structured errors, monitoring, `operators.json` parity,
   integration decision tree — with cited Walrus docs and measurable success criteria. Linked from
-  **README.md** next to **walrus-mainnet-publisher-502-report.html**.
+  **README.md** next to **walrus-mainnet-publisher-502-report.html**. Includes a **Sessions hackathon**
+  subsection explaining why **localhost-only** publisher is not a substitute for network-reachable
+  Mainnet blob ingress for a shareable static app (brief vs developer workaround).
 
 ### Fixed
 
