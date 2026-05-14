@@ -20,6 +20,9 @@
   danh sách mainnet mặc định; `app.js` hiển thị banner **“Sử dụng Publisher local”** (và cảnh báo mixed content khi cần).
   Nav thêm liên kết tới trang này; service worker cache bump **v4**.
 
+- **tests/local-publisher-page.spec.js — Playwright smoke cho tab Publisher local**
+  Kiểm tra copy trang, lưu / xóa `localStorage` (`walforms.localPublisherBaseUrl`).
+
 - **fields.js — new question types in builder/form canvas**
   Added `email`, `phone`, `number`, `date`, and `time` field types to the palette and wired
   them through `renderFieldInput` and `readFieldValue` so they render and submit correctly.
