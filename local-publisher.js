@@ -1,4 +1,4 @@
-// local-publisher.js — tab riêng: bật / tắt Publisher Walrus chạy trên máy (127.0.0.1).
+// local-publisher.js — enable / disable Walrus HTTP publisher on this machine (127.0.0.1).
 
 import {
   getLocalPublisherBaseUrl,
@@ -34,9 +34,9 @@ saveBtn?.addEventListener('click', () => {
   try {
     setLocalPublisherBaseUrl(raw);
     if (!raw) {
-      showStatus('Đã tắt: trình duyệt chỉ dùng publisher mainnet mặc định.', 'info');
+      showStatus('Disabled: the app will use only the default mainnet publishers.', 'info');
     } else {
-      showStatus(`Đã lưu Publisher local: ${getLocalPublisherBaseUrl()}. Tải lại Builder / Form để áp dụng (hoặc F5).`, 'info');
+      showStatus(`Saved local publisher: ${getLocalPublisherBaseUrl()}. Reload Builder / Form to apply (or press F5).`, 'info');
     }
     window.dispatchEvent(new CustomEvent('walforms:local-publisher-changed'));
   } catch (e) {
@@ -47,14 +47,14 @@ saveBtn?.addEventListener('click', () => {
 clearBtn?.addEventListener('click', () => {
   clearLocalPublisherBaseUrl();
   loadCurrent();
-  showStatus('Đã xóa cấu hình Publisher local.', 'info');
+  showStatus('Local publisher settings cleared.', 'info');
   window.dispatchEvent(new CustomEvent('walforms:local-publisher-changed'));
 });
 
 testBtn?.addEventListener('click', async () => {
   const raw = inputEl?.value?.trim() ?? '';
   if (!raw) {
-    showStatus('Nhập URL publisher trước khi kiểm tra.', 'error');
+    showStatus('Enter a publisher URL before testing.', 'error');
     return;
   }
   let base;
@@ -62,20 +62,20 @@ testBtn?.addEventListener('click', async () => {
     base = raw.replace(/\/+$/, '');
     new URL(base);
   } catch {
-    showStatus('URL không hợp lệ.', 'error');
+    showStatus('Invalid URL.', 'error');
     return;
   }
-  showStatus('Đang gọi /v1/api …', 'info');
+  showStatus('Calling GET /v1/api…', 'info');
   try {
     const res = await fetch(`${base}/v1/api`, { method: 'GET', cache: 'no-store' });
     if (res.ok) {
-      showStatus(`OK — HTTP ${res.status}. Publisher phản hồi (có thể lưu cấu hình).`, 'info');
+      showStatus(`OK — HTTP ${res.status}. Publisher responded (you can save these settings).`, 'info');
     } else {
-      showStatus(`Phản hồi HTTP ${res.status}. Kiểm tra walrus publisher đã chạy chưa.`, 'error');
+      showStatus(`HTTP ${res.status}. Check that walrus publisher is running.`, 'error');
     }
   } catch (e) {
     showStatus(
-      `Không kết nối được: ${e.message}. CORS / mixed content: xem cảnh báo dưới; thử mở WalForms qua http://localhost cùng máy.`,
+      `Could not connect: ${e.message}. CORS / mixed content: see the warning below; try opening WalForms over http://localhost on the same machine.`,
       'error',
     );
   }
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadCurrent();
   const cur = getLocalPublisherBaseUrl();
   if (cur) {
-    showStatus(`Đang bật Publisher local: ${cur}`, 'info');
+    showStatus(`Local publisher enabled: ${cur}`, 'info');
   } else {
     showStatus('', 'info');
   }

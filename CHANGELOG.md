@@ -14,14 +14,14 @@
   Dispatched whenever the header wallet button state updates so `form.js` can re-enable Submit
   after the user connects without reloading.
 
-- **local-publisher.html / local-publisher.js — tab “Publisher local” (Walrus CLI trên máy)**
-  Trang riêng (tiếng Việt) hướng dẫn chạy `walrus publisher --bind-address 127.0.0.1:31416`, lưu base URL vào
-  `localStorage`, thử `GET /v1/api`, và nhắc mixed content HTTPS→HTTP. `walrus.js` thử publisher local **trước**
-  danh sách mainnet mặc định; `app.js` hiển thị banner **“Sử dụng Publisher local”** (và cảnh báo mixed content khi cần).
-  Nav thêm liên kết tới trang này; service worker cache bump **v4**.
+- **local-publisher.html / local-publisher.js — “Local publisher” page (Walrus CLI on your machine)**
+  Dedicated page (English) documents `walrus publisher --bind-address 127.0.0.1:31416`, saves the base URL to
+  `localStorage`, tries `GET /v1/api`, and warns about HTTPS→HTTP mixed content. `walrus.js` tries the local publisher **before**
+  the default mainnet list; `app.js` shows a **“Using local publisher”** banner (and mixed-content warning when relevant).
+  Nav links to this page; service worker cache bump **v4**.
 
-- **tests/local-publisher-page.spec.js — Playwright smoke cho tab Publisher local**
-  Kiểm tra copy trang, lưu / xóa `localStorage` (`walforms.localPublisherBaseUrl`).
+- **tests/local-publisher-page.spec.js — Playwright smoke for Local publisher page**
+  Asserts page copy, save / clear `localStorage` (`walforms.localPublisherBaseUrl`).
 
 - **fields.js — new question types in builder/form canvas**
   Added `email`, `phone`, `number`, `date`, and `time` field types to the palette and wired

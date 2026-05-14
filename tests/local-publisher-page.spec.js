@@ -1,4 +1,4 @@
-// Smoke: tab Publisher local — copy, lưu localStorage, không cần Walrus thật.
+// Smoke: Local publisher page — copy, localStorage save/clear; no real Walrus required.
 
 const { test, expect } = require('@playwright/test');
 
@@ -10,12 +10,12 @@ test.describe('Local publisher tab', () => {
     await page.evaluate((k) => localStorage.removeItem(k), KEY);
   });
 
-  test('shows Sử dụng Publisher local and saves base URL', async ({ page }) => {
-    await expect(page.getByText('Sử dụng Publisher local').first()).toBeVisible();
-    await expect(page.getByRole('heading', { name: /Publisher Walrus trên máy/i })).toBeVisible();
+  test('shows Using local publisher and saves base URL', async ({ page }) => {
+    await expect(page.getByText('Using local publisher').first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Walrus publisher on your machine/i })).toBeVisible();
 
     await page.fill('#local-publisher-url', 'http://127.0.0.1:31416');
-    await page.getByRole('button', { name: /Lưu & bật Publisher local/i }).click();
+    await page.getByRole('button', { name: /Save & enable local publisher/i }).click();
 
     const stored = await page.evaluate((k) => localStorage.getItem(k), KEY);
     expect(stored).toBe('http://127.0.0.1:31416');
@@ -31,7 +31,7 @@ test.describe('Local publisher tab', () => {
       KEY,
     );
     await page.reload();
-    await page.getByRole('button', { name: /Tắt & xóa cấu hình/i }).click();
+    await page.getByRole('button', { name: /Disable & clear/i }).click();
     const cleared = await page.evaluate((k) => localStorage.getItem(k), KEY);
     expect(cleared).toBeNull();
   });

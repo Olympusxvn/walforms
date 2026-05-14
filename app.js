@@ -59,18 +59,18 @@ function injectLocalPublisherBanner() {
   const safe = escapeHtmlAttr(localUrl);
   if (mixed) {
     el.innerHTML = `
-      <span class="wf-local-publisher-banner__title">Sử dụng Publisher local</span>
+      <span class="wf-local-publisher-banner__title">Using local publisher</span>
       <span class="wf-local-publisher-banner__body">
-        Đã cấu hình <code>${safe}</code> nhưng trang đang là <strong>HTTPS</strong> — trình duyệt thường chặn gọi HTTP tới localhost.
-        Phục vụ WalForms qua <strong>http://</strong> trên cùng máy hoặc tắt Publisher local.
-        <a href="local-publisher.html">Mở tab Publisher local</a>
+        <code>${safe}</code> is set, but this page is <strong>HTTPS</strong> — browsers usually block HTTP calls to localhost.
+        Serve WalForms over <strong>http://</strong> on the same machine, or disable the local publisher.
+        <a href="local-publisher.html">Local publisher settings</a>
       </span>`;
   } else {
     el.innerHTML = `
-      <span class="wf-local-publisher-banner__title">Sử dụng Publisher local</span>
+      <span class="wf-local-publisher-banner__title">Using local publisher</span>
       <span class="wf-local-publisher-banner__body">
-        Upload Walrus thử <code>${safe}</code> trước, rồi mới tới publisher mainnet mặc định.
-        <a href="local-publisher.html">Cấu hình</a>
+        Walrus uploads try <code>${safe}</code> first, then the default mainnet publishers.
+        <a href="local-publisher.html">Settings</a>
       </span>`;
   }
   document.body.prepend(el);
