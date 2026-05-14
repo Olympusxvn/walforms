@@ -102,12 +102,49 @@ dispatchAppReady();
 export const PACKAGE_ID = '0x9c81554f9aa5a2a9bef1acfe5041dd99ed9c6cf4d0668b2d08e2d156aff72c84';
 export const ADMIN_CAP_ID = '0x2c3cc866cc9aece966e68aa60472a9551ac780e8c36bd9c8223b6e0c553ff195';
 const MODULE = 'registry';
+
+/** Platform fee per create-form or record-submission TX (0.0005 SUI → admin recipient). */
+export const PLATFORM_FEE_MIST = 500_000n;
+
 const SUI_RPC = getFullnodeUrl('mainnet');
 
 export const suiClient = new SuiClient({ url: SUI_RPC });
 
 function getE2EMock(key) {
   return globalThis?.__WALFORMS_E2E_MOCKS__?.[key];
+}
+
+let _cachedFeeRecipient = null;
+
+function ensureSuiAddress(addr) {
+  const s = String(addr).toLowerCase().trim();
+  if (!s) throw new Error('Fee recipient address is empty.');
+  return s.startsWith('0x') ? s : `0x${s}`;
+}
+
+/**
+ * Sui address that receives PLATFORM_FEE_MIST on paid actions (first AdminCap admin).
+ */
+export async function getFeeRecipientAddress() {
+  const mocked = getE2EMock('feeRecipient');
+  if (typeof mocked === 'string' && mocked.trim()) return ensureSuiAddress(mocked);
+
+  if (_cachedFeeRecipient) return _cachedFeeRecipient;
+  const admins = await getAdminAddresses();
+  if (!admins.length) {
+    throw new Error('No admin addresses on AdminCap; cannot route platform fee.');
+  }
+  _cachedFeeRecipient = ensureSuiAddress(admins[0]);
+  return _cachedFeeRecipient;
+}
+
+/**
+ * Append split + transfer of PLATFORM_FEE_MIST from gas to the fee recipient (same PTB).
+ */
+async function appendPlatformFee(tx) {
+  const recipient = await getFeeRecipientAddress();
+  const [coin] = tx.splitCoins(tx.gas, [PLATFORM_FEE_MIST]);
+  tx.transferObjects([coin], recipient);
 }
 
 // ---------------------------------------------------------------------------
@@ -262,6 +299,7 @@ export async function txCreateForm(title, definitionBlobId, definitionHash) {
       clock,
     ],
   });
+  await appendPlatformFee(tx);
   return signAndExecute(tx);
 }
 
@@ -283,6 +321,7 @@ export async function txRecordSubmission(formObjectId, submissionBlobId, submiss
       clock,
     ],
   });
+  await appendPlatformFee(tx);
   return signAndExecute(tx);
 }
 

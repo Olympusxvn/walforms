@@ -6,11 +6,8 @@ import { renderFieldInput, readFieldValue, normalizeWalletAddress } from './fiel
 import {
   getWalForm,
   txRecordSubmission,
-  buildRecordSubmissionTx,
-  signAndExecuteAnonymous,
   isWalletConnected,
   getConnectedAddress,
-  getEphemeralKeypair,
 } from './sui.js';
 
 // ---------------------------------------------------------------------------
@@ -67,7 +64,7 @@ const SUBMIT_STEPS = [
   { key: 'files',   label: '1. Uploading file attachments to Walrus…' },
   { key: 'hash',    label: '2. Computing submission hash…' },
   { key: 'upload',  label: '3. Uploading submission to Walrus…' },
-  { key: 'sign',    label: '4. Signing Sui transaction…' },
+  { key: 'sign',    label: '4. Signing Sui transaction (0.0005 SUI platform fee)…' },
   { key: 'confirm', label: '5. Waiting for confirmation…' },
 ];
 
@@ -155,6 +152,44 @@ async function initForm() {
 
   hideLoading();
   renderFormUI();
+  window.addEventListener('walforms:wallet-changed', updateWalletGateUI);
+}
+
+function updateWalletGateUI() {
+  if (!formContainerEl || formContainerEl.hidden) return;
+  applyWalletGateToFormPage();
+}
+
+/**
+ * Wallet required to submit; fee is taken in the same TX as record_submission.
+ */
+function applyWalletGateToFormPage() {
+  const connected = isWalletConnected();
+  const addr = getConnectedAddress();
+
+  if (anonNoticeEl) {
+    if (connected) {
+      anonNoticeEl.hidden = true;
+    } else {
+      anonNoticeEl.hidden = false;
+      anonNoticeEl.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <div>
+          <strong>Connect a Sui wallet to submit</strong>
+          Submissions are recorded on-chain. You will sign one transaction that includes
+          <strong>0.0005 SUI</strong> sent to the WalForms admin address (same transaction as your response).
+          Use <strong>Connect wallet</strong> in the header (e.g. Slush).
+        </div>
+      `;
+    }
+  }
+
+  if (submitBtn) submitBtn.disabled = !connected;
+  if (submitHintEl) {
+    submitHintEl.textContent = connected
+      ? `Ready to submit as ${addr?.slice(0, 10)}… (includes 0.0005 SUI fee)`
+      : 'Connect your wallet in the header to enable Submit.';
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -174,15 +209,12 @@ function renderFormUI() {
           Verified on Sui
         </span>
         <span>${formDef.fields?.length ?? 0} fields</span>
-        ${formDef.settings?.allowAnonymous ? '<span>Anonymous allowed</span>' : ''}
+        <span>Wallet required · 0.0005 SUI fee on submit</span>
       </div>
     `;
   }
 
-  // Anonymous notice
-  if (!isWalletConnected() && anonNoticeEl) {
-    anonNoticeEl.hidden = false;
-  }
+  applyWalletGateToFormPage();
 
   // Fields
   fieldWrappers = [];
@@ -192,13 +224,6 @@ function renderFormUI() {
     fieldWrappers.push({ field, wrapper });
     formFieldsEl?.append(wrapper);
   });
-
-  // Submit hint
-  if (submitHintEl) {
-    submitHintEl.textContent = isWalletConnected()
-      ? `Submitting as ${getConnectedAddress()?.slice(0, 10)}…`
-      : 'Will submit anonymously';
-  }
 
   formContainerEl.hidden = false;
   submissionForm?.addEventListener('submit', handleSubmit);
@@ -241,6 +266,14 @@ async function handleSubmit(e) {
     }
   }
 
+  if (!isWalletConnected()) {
+    window.walformsApp?.showStatusMessage(
+      'Connect your Sui wallet in the header to submit. Submitting records your response on-chain and sends 0.0005 SUI to the WalForms admin address in the same transaction.',
+      'error',
+    );
+    return;
+  }
+
   window.walformsApp?.clearStatusMessage?.();
   submitBtn.disabled = true;
   const statuses = {};
@@ -273,7 +306,7 @@ async function handleSubmit(e) {
 
     // Step 2 — hash
     renderSubmitSteps('hash', statuses);
-    const submitter = isWalletConnected() ? getConnectedAddress() : await getAnonAddress();
+    const submitter = getConnectedAddress();
     const submission = {
       schemaVersion: 'walforms/v1',
       formId: walForm.id,
@@ -299,29 +332,23 @@ async function handleSubmit(e) {
       renderSubmitSteps('upload', statuses);
       showCurlFallbackInline(submissionJson);
       submitBtn.disabled = false;
+      applyWalletGateToFormPage();
       return;
     }
     statuses.upload = 'done';
     statuses.upload_detail = subBlobId.slice(0, 12) + '…';
 
-    // Step 4 — Sui TX
+    // Step 4 — Sui TX (includes 0.0005 SUI platform fee in the same PTB)
     renderSubmitSteps('sign', statuses);
     let txResult;
     try {
-      if (isWalletConnected()) {
-        txResult = await txRecordSubmission(walForm.id, subBlobId, hashBytes);
-      } else {
-        // Anonymous on-chain TX: ephemeral key must have gas. Without a gas
-        // sponsor this will fail with InsufficientGas on mainnet. Users should
-        // connect a wallet when possible.
-        const tx = buildRecordSubmissionTx(walForm.id, subBlobId, hashBytes);
-        txResult = await signAndExecuteAnonymous(tx);
-      }
+      txResult = await txRecordSubmission(walForm.id, subBlobId, hashBytes);
     } catch (txErr) {
       statuses.sign = 'error';
       renderSubmitSteps('sign', statuses);
       window.walformsApp?.showStatusMessage(`Sui TX failed: ${txErr.message}`, 'error');
       submitBtn.disabled = false;
+      applyWalletGateToFormPage();
       return;
     }
     statuses.sign = 'done';
@@ -339,6 +366,7 @@ async function handleSubmit(e) {
     window.walformsApp?.showStatusMessage(`Submission failed: ${err.message}`, 'error');
     console.error('[form] submit error', err);
     submitBtn.disabled = false;
+    applyWalletGateToFormPage();
   }
 }
 
@@ -404,7 +432,7 @@ function showReceipt({ subBlobId, hashHex, txDigest, submitter }) {
   if (blobEl)    blobEl.textContent = subBlobId;
   if (hashEl)    hashEl.textContent = hashHex;
   if (txEl)      txEl.textContent = txDigest;
-  if (subEl)     subEl.textContent = submitter === 'anonymous' ? 'Anonymous (ephemeral key)' : submitter;
+  if (subEl)     subEl.textContent = submitter;
   if (suiscanEl) suiscanEl.href = `https://suiscan.xyz/mainnet/tx/${txDigest}`;
 
   receiptEl && (receiptEl.hidden = false);
@@ -414,14 +442,6 @@ function showReceipt({ subBlobId, hashHex, txDigest, submitter }) {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-async function getAnonAddress() {
-  try {
-    const kp = await getEphemeralKeypair();
-    return kp.getPublicKey().toSuiAddress();
-  } catch {
-    return 'anonymous';
-  }
-}
 
 /** Convert on-chain definition_blob_id (array of numbers) to a Walrus blob ID string. */
 function bytesToBlobId(blobIdField) {

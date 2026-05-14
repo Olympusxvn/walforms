@@ -65,6 +65,13 @@ function updateWalletButton() {
   if (needsWallet && !walletState.connected) {
     showPreviewBanner();
   }
+
+  window.dispatchEvent(new CustomEvent('walforms:wallet-changed', {
+    detail: {
+      connected: walletState.connected,
+      address: walletState.address,
+    },
+  }));
 }
 
 function showPreviewBanner() {
@@ -74,7 +81,7 @@ function showPreviewBanner() {
   banner.className = 'preview-banner';
   banner.innerHTML = `
     <strong>Preview mode</strong> — No wallet connected.
-    Connect a Sui wallet to create forms, submit responses, or seal a form.
+    Connect a Sui wallet to create forms, submit responses (includes 0.0005 SUI platform fee), or seal a form.
     <span id="preview-dismiss" role="button" tabindex="0" aria-label="Dismiss">✕</span>
   `;
   document.body.prepend(banner);

@@ -4,6 +4,16 @@
 
 ### Added
 
+- **sui.js — 0.0005 SUI platform fee on create_form and record_submission**
+  Each `create_form` and `record_submission` transaction appends a `splitCoins` + `transferObjects`
+  leg so **500_000 MIST (0.0005 SUI)** is sent to the **first admin address** read from the on-chain
+  `AdminCap` (`getAdminAddresses()[0]`). New exports: `PLATFORM_FEE_MIST`, `getFeeRecipientAddress()`.
+  E2E may override the recipient via `__WALFORMS_E2E_MOCKS__.feeRecipient`.
+
+- **app.js — `walforms:wallet-changed` custom event**
+  Dispatched whenever the header wallet button state updates so `form.js` can re-enable Submit
+  after the user connects without reloading.
+
 - **fields.js — new question types in builder/form canvas**
   Added `email`, `phone`, `number`, `date`, and `time` field types to the palette and wired
   them through `renderFieldInput` and `readFieldValue` so they render and submit correctly.
@@ -41,6 +51,19 @@
   fixed footer GitHub href to the public repository.
 
 ### Changed
+
+- **builder.js — wallet required before save**
+  Save no longer runs Walrus upload until a wallet is connected. New forms set `creator` to the
+  connected address and `settings.allowAnonymous` to `false`. Progress copy mentions the
+  **0.0005 SUI** fee in the signing step.
+
+- **form.js — wallet required to submit; anonymous path removed**
+  Submit is disabled until a wallet is connected; copy explains the platform fee in the same TX as
+  `record_submission`. Removed `signAndExecuteAnonymous` / ephemeral submitter flow. UI listens for
+  `walforms:wallet-changed` to refresh the gate after connect.
+
+- **app.js — preview banner copy**
+  Mentions the **0.0005 SUI** fee when describing connected-wallet actions.
 
 - **builder.js / form.js — alternate publisher in curl fallback UI**
   When multiple publisher base URLs are configured, the Walrus failure panel shows a primary and

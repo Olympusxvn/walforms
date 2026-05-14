@@ -310,7 +310,7 @@ function attachCanvasDrop() {
 const STEPS = [
   { key: 'hash',    label: '1. Computing definition hash…' },
   { key: 'upload',  label: '2. Uploading to Walrus…' },
-  { key: 'sign',    label: '3. Awaiting Sui signature…' },
+  { key: 'sign',    label: '3. Awaiting Sui signature (0.0005 SUI platform fee)…' },
   { key: 'confirm', label: '4. Waiting for confirmation…' },
 ];
 
@@ -404,6 +404,14 @@ async function saveForm() {
     return;
   }
 
+  if (!isWalletConnected()) {
+    window.walformsApp?.showStatusMessage(
+      'Connect your Sui wallet first. Saving registers the form on-chain and sends a 0.0005 SUI platform fee to the admin address.',
+      'error',
+    );
+    return;
+  }
+
   saveBtn.disabled = true;
   window.walformsApp?.clearStatusMessage?.();
 
@@ -417,9 +425,9 @@ async function saveForm() {
       title,
       description: '',
       createdAt: Date.now(),
-      creator: getConnectedAddress() ?? 'anonymous',
+      creator: getConnectedAddress(),
       fields: state.fields,
-      settings: { private: false, allowAnonymous: true, submissionLimit: 0 },
+      settings: { private: false, allowAnonymous: false, submissionLimit: 0 },
     };
     const formJson = JSON.stringify(formDef, null, 2);
     const hashBytes = await sha256(formJson);
@@ -443,17 +451,8 @@ async function saveForm() {
       statuses.upload = 'done';
     }
 
-    // Step 3 — Sui TX
+    // Step 3 — Sui TX (includes 0.0005 SUI fee to admin in the same PTB)
     renderProgressSteps('sign', statuses);
-    if (!isWalletConnected()) {
-      // Prompt connect
-      statuses.sign = 'error';
-      renderProgressSteps('sign', statuses);
-      window.walformsApp?.showStatusMessage('Connect your wallet to register the form on Sui.', 'error');
-      saveBtn.disabled = false;
-      return;
-    }
-
     const txResult = await txCreateForm(title, blobId, hashBytes);
     statuses.sign = 'done';
 
