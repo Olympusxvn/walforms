@@ -1,4 +1,4 @@
-const CACHE_NAME = 'walforms-shell-v3';
+const CACHE_NAME = 'walforms-shell-v4';
 const ASSETS = [
   '/',
   'index.html',
@@ -6,6 +6,7 @@ const ASSETS = [
   'form.html',
   'dashboard.html',
   'verify.html',
+  'local-publisher.html',
   'feedback.html',
   'style.css',
   'app.js',
@@ -13,6 +14,7 @@ const ASSETS = [
   'form.js',
   'dashboard.js',
   'verify.js',
+  'local-publisher.js',
   'fields.js',
   'crypto.js',
   'walrus.js',

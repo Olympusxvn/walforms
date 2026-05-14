@@ -1026,7 +1026,46 @@ strong {
 }
 
 /* --------------------------------------------------------------------------
-   20. SCROLLBAR (subtle styling)
+   20. LOCAL WALRUS PUBLISHER BANNER (Walrus CLI on user's machine)
+   -------------------------------------------------------------------------- */
+.wf-local-publisher-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-3) var(--sp-5);
+  padding: var(--sp-3) var(--sp-6);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  border-bottom: 1px solid rgba(142, 99, 255, 0.28);
+  background: linear-gradient(90deg, rgba(142, 99, 255, 0.12) 0%, rgba(14, 208, 200, 0.08) 100%);
+  z-index: 99;
+}
+
+.wf-local-publisher-banner[data-variant="mixed-content"] {
+  border-bottom-color: rgba(224, 160, 48, 0.45);
+  background: linear-gradient(90deg, rgba(224, 160, 48, 0.14) 0%, rgba(224, 72, 72, 0.06) 100%);
+}
+
+.wf-local-publisher-banner__title {
+  font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.wf-local-publisher-banner__body {
+  color: var(--color-text);
+  flex: 1;
+  min-width: min(100%, 280px);
+}
+
+.wf-local-publisher-banner code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  word-break: break-all;
+}
+
+/* --------------------------------------------------------------------------
+   21. SCROLLBAR (subtle styling)
    -------------------------------------------------------------------------- */
 ::-webkit-scrollbar {
   width: 6px;
@@ -1047,7 +1086,7 @@ strong {
 }
 
 /* --------------------------------------------------------------------------
-   21. FOCUS VISIBLE (accessibility)
+   22. FOCUS VISIBLE (accessibility)
    -------------------------------------------------------------------------- */
 :focus-visible {
   outline: 2px solid var(--color-primary);
@@ -1056,7 +1095,7 @@ strong {
 }
 
 /* --------------------------------------------------------------------------
-   22. SELECTION
+   23. SELECTION
    -------------------------------------------------------------------------- */
 ::selection {
   background-color: rgba(142, 99, 255, 0.2);

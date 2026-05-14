@@ -9,6 +9,53 @@ const PUBLISHERS = [
   'https://publisher.walrus-mainnet.h2o-nodes.com',
 ];
 
+/** localStorage: base URL of Walrus HTTP publisher on this machine (no trailing slash). */
+export const WALFORMS_LOCAL_PUBLISHER_KEY = 'walforms.localPublisherBaseUrl';
+
+export function getLocalPublisherBaseUrl() {
+  try {
+    const raw = localStorage.getItem(WALFORMS_LOCAL_PUBLISHER_KEY)?.trim();
+    if (!raw) return null;
+    return raw.replace(/\/+$/, '');
+  } catch {
+    return null;
+  }
+}
+
+/** Persist local publisher base (e.g. http://127.0.0.1:31416). Pass empty string to clear. */
+export function setLocalPublisherBaseUrl(url) {
+  const t = String(url ?? '').trim().replace(/\/+$/, '');
+  try {
+    if (!t) {
+      localStorage.removeItem(WALFORMS_LOCAL_PUBLISHER_KEY);
+      return;
+    }
+    new URL(t);
+    localStorage.setItem(WALFORMS_LOCAL_PUBLISHER_KEY, t);
+  } catch {
+    throw new TypeError('Invalid publisher base URL.');
+  }
+}
+
+export function clearLocalPublisherBaseUrl() {
+  try {
+    localStorage.removeItem(WALFORMS_LOCAL_PUBLISHER_KEY);
+  } catch { /* ignore */ }
+}
+
+/** True when Walrus uploads will try your local publisher first. */
+export function isLocalPublisherModeActive() {
+  return Boolean(getLocalPublisherBaseUrl());
+}
+
+/** Publisher bases for PUT /v1/blobs: local first (if configured), then defaults. */
+function getUploadPublisherBases() {
+  const local = getLocalPublisherBaseUrl();
+  if (!local) return [...PUBLISHERS];
+  const dedup = PUBLISHERS.filter((b) => b !== local);
+  return [local, ...dedup];
+}
+
 const AGGREGATORS = [
   'https://aggregator.walrus-mainnet.walrus.space',
   'https://wal-aggregator-mainnet.staketab.org',
@@ -112,7 +159,7 @@ export async function uploadBlob(data, { epochs = 5, sendObjectTo = null } = {})
   const body = normalizeBlobData(data);
   const errors = [];
 
-  for (const base of PUBLISHERS) {
+  for (const base of getUploadPublisherBases()) {
     const url = new URL(`${base}/v1/blobs`);
     url.searchParams.set('epochs', epochs);
     if (sendObjectTo) url.searchParams.set('send_object_to', sendObjectTo);
@@ -282,7 +329,8 @@ export class WalrusFetchError extends Error {
 }
 
 export function curlFallback(epochs = 5, fileName = 'YOUR_FILE', publisherIndex = 0) {
-  const base = PUBLISHERS[publisherIndex];
+  const bases = getUploadPublisherBases();
+  const base = bases[publisherIndex];
   if (!base) return '';
   const encoded = encodeURI(`${base}/v1/blobs?epochs=${epochs}`);
   return `curl -X PUT "${encoded}" --upload-file ${fileName}`;

@@ -12,6 +12,7 @@ import {
 } from './sui.js';
 
 import { sha256, bytesToHex, merkleRoot } from './crypto.js';
+import { getLocalPublisherBaseUrl } from './walrus.js';
 
 // ---------------------------------------------------------------------------
 // Package ID banner — shown when PACKAGE_ID is still the placeholder value
@@ -28,6 +29,51 @@ function injectPackageBanner() {
     then reload.
   `;
   document.body.prepend(banner);
+}
+
+// ---------------------------------------------------------------------------
+// Local Walrus HTTP publisher (Walrus CLI on this machine)
+// ---------------------------------------------------------------------------
+function escapeHtmlAttr(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/"/g, '&quot;');
+}
+
+function injectLocalPublisherBanner() {
+  const path = location.pathname.split('/').pop() || '';
+  if (path === 'local-publisher.html') return;
+
+  document.getElementById('wf-local-publisher-banner')?.remove();
+  const localUrl = getLocalPublisherBaseUrl();
+  if (!localUrl) return;
+
+  const mixed = location.protocol === 'https:' && localUrl.startsWith('http:');
+  const el = document.createElement('div');
+  el.id = 'wf-local-publisher-banner';
+  el.className = 'wf-local-publisher-banner';
+  el.setAttribute('role', 'status');
+  el.dataset.variant = mixed ? 'mixed-content' : 'active';
+
+  const safe = escapeHtmlAttr(localUrl);
+  if (mixed) {
+    el.innerHTML = `
+      <span class="wf-local-publisher-banner__title">Sử dụng Publisher local</span>
+      <span class="wf-local-publisher-banner__body">
+        Đã cấu hình <code>${safe}</code> nhưng trang đang là <strong>HTTPS</strong> — trình duyệt thường chặn gọi HTTP tới localhost.
+        Phục vụ WalForms qua <strong>http://</strong> trên cùng máy hoặc tắt Publisher local.
+        <a href="local-publisher.html">Mở tab Publisher local</a>
+      </span>`;
+  } else {
+    el.innerHTML = `
+      <span class="wf-local-publisher-banner__title">Sử dụng Publisher local</span>
+      <span class="wf-local-publisher-banner__body">
+        Upload Walrus thử <code>${safe}</code> trước, rồi mới tới publisher mainnet mặc định.
+        <a href="local-publisher.html">Cấu hình</a>
+      </span>`;
+  }
+  document.body.prepend(el);
 }
 
 // ---------------------------------------------------------------------------
@@ -230,6 +276,10 @@ async function registerServiceWorker() {
 // ---------------------------------------------------------------------------
 async function initApp() {
   injectPackageBanner();
+  injectLocalPublisherBanner();
+  window.addEventListener('walforms:local-publisher-changed', () => {
+    injectLocalPublisherBanner();
+  });
   highlightActiveNav();
   updateWalletButton();
 

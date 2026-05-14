@@ -14,6 +14,12 @@
   Dispatched whenever the header wallet button state updates so `form.js` can re-enable Submit
   after the user connects without reloading.
 
+- **local-publisher.html / local-publisher.js — tab “Publisher local” (Walrus CLI trên máy)**
+  Trang riêng (tiếng Việt) hướng dẫn chạy `walrus publisher --bind-address 127.0.0.1:31416`, lưu base URL vào
+  `localStorage`, thử `GET /v1/api`, và nhắc mixed content HTTPS→HTTP. `walrus.js` thử publisher local **trước**
+  danh sách mainnet mặc định; `app.js` hiển thị banner **“Sử dụng Publisher local”** (và cảnh báo mixed content khi cần).
+  Nav thêm liên kết tới trang này; service worker cache bump **v4**.
+
 - **fields.js — new question types in builder/form canvas**
   Added `email`, `phone`, `number`, `date`, and `time` field types to the palette and wired
   them through `renderFieldInput` and `readFieldValue` so they render and submit correctly.

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Publisher local — WalForms</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="description" content="Cấu hình WalForms dùng Walrus HTTP publisher chạy trên máy (127.0.0.1).">
+  <style>
+    .local-publisher-hero {
+      border: 2px solid var(--color-primary);
+      border-radius: var(--radius-lg);
+      padding: var(--sp-6);
+      background: linear-gradient(135deg, rgba(142,99,255,.08) 0%, rgba(14,208,200,.06) 100%);
+      margin-bottom: var(--sp-8);
+    }
+    .local-publisher-hero h1 { margin: 0 0 var(--sp-3); font-size: var(--text-xl); }
+    .local-publisher-hero .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      background: var(--color-primary);
+      color: #fff;
+      margin-bottom: var(--sp-4);
+    }
+    .local-publisher-note {
+      font-size: var(--text-sm);
+      color: var(--color-muted);
+      margin-top: var(--sp-3);
+      line-height: 1.55;
+    }
+    .local-publisher-panel .field-row { margin-bottom: var(--sp-5); }
+    .local-publisher-panel label {
+      display: block;
+      font-size: var(--text-sm);
+      font-weight: 600;
+      margin-bottom: var(--sp-2);
+    }
+    .local-publisher-panel input {
+      width: 100%;
+      max-width: 480px;
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+    }
+    .local-publisher-actions { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-4); }
+    #local-publisher-status {
+      margin-top: var(--sp-5);
+      padding: var(--sp-4);
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      border: 1.5px solid var(--color-border);
+      background: var(--color-surface);
+    }
+    #local-publisher-status[data-status-type="error"] {
+      border-color: var(--color-red);
+      background: rgba(224,72,72,.06);
+    }
+    .doc-pre {
+      font-size: 12px;
+      line-height: 1.45;
+      padding: var(--sp-4);
+      border-radius: var(--radius-md);
+      background: #0f1115;
+      color: #e8e6e3;
+      overflow-x: auto;
+      margin: var(--sp-3) 0;
+    }
+    .warn-box {
+      border-left: 4px solid #e0a030;
+      padding: var(--sp-4) var(--sp-5);
+      background: rgba(224,160,48,.09);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      font-size: var(--text-sm);
+      margin: var(--sp-5) 0;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo">WalForms</a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="local-publisher.html" class="nav-link" aria-current="page">Publisher local</a>
+        <a href="builder.html" class="nav-link">Build</a>
+        <button id="wallet-connect-btn" class="btn btn-ghost" type="button">Connect wallet</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="section">
+    <div class="container" style="max-width: 720px;">
+
+      <div class="local-publisher-hero">
+        <span class="tag">Sử dụng Publisher local</span>
+        <h1>Publisher Walrus trên máy bạn</h1>
+        <p style="margin:0;font-size:var(--text-sm);line-height:1.6;color:var(--color-text);">
+          Trang <strong>riêng</strong> này chỉ để bật chế độ: trình duyệt sẽ gửi <code>PUT /v1/blobs</code>
+          lên <strong>http://127.0.0.1:…</strong> (Walrus CLI) <em>trước</em>, rồi mới thử publisher mainnet mặc định.
+          Dùng khi publisher công khai bị 502 hoặc khi dev.
+        </p>
+        <p class="local-publisher-note">
+          Cấu hình lưu trong <code>localStorage</code> trên trình duyệt (mỗi origin một bản). Đây không phải tính năng relay server —
+          vẫn là nguyên tắc HTTP publisher, chỉ đổi <strong>điểm cuối đầu tiên</strong> sang máy local.
+        </p>
+      </div>
+
+      <div class="card local-publisher-panel" style="padding:var(--sp-8);">
+        <p class="eyebrow" style="margin-bottom:var(--sp-4);">Cấu hình</p>
+        <div class="field-row">
+          <label for="local-publisher-url">Base URL publisher (không có dấu / cuối)</label>
+          <input
+            id="local-publisher-url"
+            class="field-input"
+            type="url"
+            placeholder="http://127.0.0.1:31416"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+        <div class="local-publisher-actions">
+          <button id="local-publisher-save" type="button" class="btn btn-primary">Lưu &amp; bật Publisher local</button>
+          <button id="local-publisher-clear" type="button" class="btn btn-ghost">Tắt &amp; xóa cấu hình</button>
+          <button id="local-publisher-test" type="button" class="btn btn-ghost">Thử GET /v1/api</button>
+        </div>
+        <div id="local-publisher-status" data-status-type="info"></div>
+      </div>
+
+      <div class="warn-box">
+        <strong>Mixed content:</strong> trang WalForms mở bằng <strong>https://</strong> (vd. Netlify) thường
+        <strong>không thể</strong> gọi <code>http://127.0.0.1</code>. Hãy phục vụ bản build qua
+        <code>http://127.0.0.1:PORT</code> hoặc <code>http://localhost:PORT</code> trên cùng máy với Walrus CLI.
+      </div>
+
+      <div class="card" style="padding:var(--sp-8);margin-top:var(--sp-6);">
+        <p class="eyebrow" style="margin-bottom:var(--sp-3);">Chạy publisher (Walrus CLI)</p>
+        <p style="font-size:var(--text-sm);color:var(--color-muted);margin-bottom:var(--sp-4);">
+          Theo tài liệu Walrus — publisher cần ví SUI + WAL; ví dụ bind <code>127.0.0.1:31416</code>:
+        </p>
+        <pre class="doc-pre">PUBLISHER_WALLETS_DIR=~/.config/walrus/publisher-wallets
+mkdir -p "$PUBLISHER_WALLETS_DIR"
+walrus publisher \
+  --bind-address "127.0.0.1:31416" \
+  --sub-wallets-dir "$PUBLISHER_WALLETS_DIR" \
+  --n-clients 1</pre>
+        <p style="font-size:var(--text-sm);color:var(--color-muted);">
+          Hoặc <code>walrus daemon</code> cùng cờ <code>--bind-address</code> để gộp aggregator + publisher.
+          Chi tiết: <a href="https://docs.wal.app/docs/operator-guide/publishers/operating-publisher" target="_blank" rel="noopener">Operating a publisher</a>.
+        </p>
+      </div>
+
+      <p style="margin-top:var(--sp-8);font-size:var(--text-sm);">
+        <a href="builder.html" class="btn btn-primary">Mở Builder</a>
+        <a href="index.html" class="btn btn-ghost" style="margin-left:var(--sp-3);">Về trang chủ</a>
+      </p>
+    </div>
+  </main>
+
+  <script type="module" src="app.js"></script>
+  <script type="module" src="local-publisher.js"></script>
+</html>
