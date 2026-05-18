@@ -8,7 +8,7 @@ WalForms is a Walrus-native feedback and form platform where form definitions an
 
 ## Live demo
 
-**URL:** https://walforms-app.netlify.app ; https://olysui.wal.app/
+**URL:** https://walforms.vercel.app/ (final) ; https://walforms-app.netlify.app ; https://olysui.wal.app/
 
 ## Architecture
 ``
